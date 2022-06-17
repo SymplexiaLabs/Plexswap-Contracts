@@ -1,45 +1,35 @@
-//SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0
 
 pragma solidity =0.6.6;
 
 import './IPlexswapFactory.sol';
 import './TransferHelper.sol';
+import "./Ownable.sol";
 
 import './IPlexswapRouter02.sol';
 import './PlexswapLibrary.sol';
-import './SafeMath.sol';
 import './IERC20.sol';
 import './IWETH.sol';
 
-contract PlexswapRouter is IPlexswapRouter02 {
-     using SafeMath for uint;
+contract PlexswapRouter is IPlexswapRouter02, Ownable {
+    using SafeMath for uint256;
 
-    address public override factory;
-    address public override WETH;
+    address public immutable override factory;
+    address public immutable override WETH;
 
-    address public admin;
-
-    mapping (address => bool) public _isBlacklisted;
     mapping (address => bool) public _isApprovedPartner;
-    mapping (address => bool) private _lpTokenLockStatus;
-    mapping (address => uint256) private _locktime;
+    bool isUnrestrictedRouter = true;
 
-    modifier ensure(uint deadline) {
-        require(deadline >= block.timestamp, 'PlexswapRouter: EXPIRED');
+    modifier ensure(uint256 deadline) {
+        require(deadline >= block.timestamp, "PlexswapRouter: EXPIRED");
         _;
     }
-
 
     constructor(address _factory, address _WETH) public {
         factory = _factory;
         WETH = _WETH;
-        admin = msg.sender;
     }
 
-    modifier onlyOwner() {
-        require(admin == msg.sender, "Ownable: caller is not the owner");
-        _;
-    }
     receive() external payable {
         assert(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
     }
@@ -48,27 +38,27 @@ contract PlexswapRouter is IPlexswapRouter02 {
     function _addLiquidity(
         address tokenA,
         address tokenB,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMin,
-        uint amountBMin
-    ) internal virtual returns (uint amountA, uint amountB) {
+        uint256 amountADesired,
+        uint256 amountBDesired,
+        uint256 amountAMin,
+        uint256 amountBMin
+    ) internal virtual returns (uint256 amountA, uint256 amountB) {
         // create the pair if it doesn't exist yet
         if (IPlexswapFactory(factory).getPair(tokenA, tokenB) == address(0)) {
             IPlexswapFactory(factory).createPair(tokenA, tokenB);
         }
-        (uint reserveA, uint reserveB) = PlexswapLibrary.getReserves(factory, tokenA, tokenB);
+        (uint256 reserveA, uint256 reserveB) = PlexswapLibrary.getReserves(factory, tokenA, tokenB);
         if (reserveA == 0 && reserveB == 0) {
             (amountA, amountB) = (amountADesired, amountBDesired);
         } else {
-            uint amountBOptimal = PlexswapLibrary.quote(amountADesired, reserveA, reserveB);
+            uint256 amountBOptimal = PlexswapLibrary.quote(amountADesired, reserveA, reserveB);
             if (amountBOptimal <= amountBDesired) {
-                require(amountBOptimal >= amountBMin, 'PlexswapRouter: INSUFFICIENT_B_AMOUNT');
+                require(amountBOptimal >= amountBMin, "PlexswapRouter: INSUFFICIENT_B_AMOUNT");
                 (amountA, amountB) = (amountADesired, amountBOptimal);
             } else {
-                uint amountAOptimal = PlexswapLibrary.quote(amountBDesired, reserveB, reserveA);
+                uint256 amountAOptimal = PlexswapLibrary.quote(amountBDesired, reserveB, reserveA);
                 assert(amountAOptimal <= amountADesired);
-                require(amountAOptimal >= amountAMin, 'PlexswapRouter: INSUFFICIENT_A_AMOUNT');
+                require(amountAOptimal >= amountAMin, "PlexswapRouter: INSUFFICIENT_A_AMOUNT");
                 (amountA, amountB) = (amountAOptimal, amountBDesired);
             }
         }
@@ -76,16 +66,25 @@ contract PlexswapRouter is IPlexswapRouter02 {
     function addLiquidity(
         address tokenA,
         address tokenB,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMin,
-        uint amountBMin,
+        uint256 amountADesired,
+        uint256 amountBDesired,
+        uint256 amountAMin,
+        uint256 amountBMin,
         address to,
-        uint deadline
-    ) external virtual override ensure(deadline) returns (uint amountA, uint amountB, uint liquidity) {
-        require(!_isBlacklisted[to],"Address is blacklisted");
-        require(_isApprovedPartner[to],"Waiting for partner approval");
+        uint256 deadline
+    )
+        external
+        virtual
+        override
+        ensure(deadline)
+        returns (
+            uint256 amountA,
+            uint256 amountB,
+            uint256 liquidity
+        )
+    {
         (amountA, amountB) = _addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin);
+        require(_isApprovedPartner[to] || isUnrestrictedRouter,"Not approved partner");
         address pair = PlexswapLibrary.pairFor(factory, tokenA, tokenB);
         TransferHelper.safeTransferFrom(tokenA, msg.sender, pair, amountA);
         TransferHelper.safeTransferFrom(tokenB, msg.sender, pair, amountB);
@@ -93,12 +92,23 @@ contract PlexswapRouter is IPlexswapRouter02 {
     }
     function addLiquidityETH(
         address token,
-        uint amountTokenDesired,
-        uint amountTokenMin,
-        uint amountETHMin,
+        uint256 amountTokenDesired,
+        uint256 amountTokenMin,
+        uint256 amountETHMin,
         address to,
-        uint deadline
-    ) external virtual override payable ensure(deadline) returns (uint amountToken, uint amountETH, uint liquidity) {
+        uint256 deadline
+    )
+        external
+        payable
+        virtual
+        override
+        ensure(deadline)
+        returns (
+            uint256 amountToken,
+            uint256 amountETH,
+            uint256 liquidity
+        )
+    {
         (amountToken, amountETH) = _addLiquidity(
             token,
             WETH,
@@ -107,7 +117,7 @@ contract PlexswapRouter is IPlexswapRouter02 {
             amountTokenMin,
             amountETHMin
         );
-        require(_isApprovedPartner[to],"Not approved partner");
+        require(_isApprovedPartner[to] || isUnrestrictedRouter,"Not approved partner");
         address pair = PlexswapLibrary.pairFor(factory, token, WETH);
         TransferHelper.safeTransferFrom(token, msg.sender, pair, amountToken);
         IWETH(WETH).deposit{value: amountETH}();
@@ -121,30 +131,29 @@ contract PlexswapRouter is IPlexswapRouter02 {
     function removeLiquidity(
         address tokenA,
         address tokenB,
-        uint liquidity,
-        uint amountAMin,
-        uint amountBMin,
+        uint256 liquidity,
+        uint256 amountAMin,
+        uint256 amountBMin,
         address to,
-        uint deadline
-    ) public virtual override ensure(deadline) returns (uint amountA, uint amountB) {
-        require(!_isBlacklisted[to],"Address is blacklisted");
+        uint256 deadline
+    ) public virtual override ensure(deadline) returns (uint256 amountA, uint256 amountB) {
         address pair = PlexswapLibrary.pairFor(factory, tokenA, tokenB);
         IPlexswapPair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
-        (uint amount0, uint amount1) = IPlexswapPair(pair).burn(to);
-        (address token0,) = PlexswapLibrary.sortTokens(tokenA, tokenB);
+        (uint256 amount0, uint256 amount1) = IPlexswapPair(pair).burn(to);
+        (address token0, ) = PlexswapLibrary.sortTokens(tokenA, tokenB);
         (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);
-        require(amountA >= amountAMin, 'PlexswapRouter: INSUFFICIENT_A_AMOUNT');
-        require(amountB >= amountBMin, 'PlexswapRouter: INSUFFICIENT_B_AMOUNT');
+        require(amountA >= amountAMin, "PlexswapRouter: INSUFFICIENT_A_AMOUNT");
+        require(amountB >= amountBMin, "PlexswapRouter: INSUFFICIENT_B_AMOUNT");
     }
+
     function removeLiquidityETH(
         address token,
-        uint liquidity,
-        uint amountTokenMin,
-        uint amountETHMin,
+        uint256 liquidity,
+        uint256 amountTokenMin,
+        uint256 amountETHMin,
         address to,
-        uint deadline
-    ) public virtual override ensure(deadline) returns (uint amountToken, uint amountETH) {
-         require(!_isBlacklisted[to],"Address is blacklisted");
+        uint256 deadline
+    ) public virtual override ensure(deadline) returns (uint256 amountToken, uint256 amountETH) {
         (amountToken, amountETH) = removeLiquidity(
             token,
             WETH,
@@ -158,34 +167,40 @@ contract PlexswapRouter is IPlexswapRouter02 {
         IWETH(WETH).withdraw(amountETH);
         TransferHelper.safeTransferETH(to, amountETH);
     }
+
     function removeLiquidityWithPermit(
         address tokenA,
         address tokenB,
-        uint liquidity,
-        uint amountAMin,
-        uint amountBMin,
+        uint256 liquidity,
+        uint256 amountAMin,
+        uint256 amountBMin,
         address to,
-        uint deadline,
-        bool approveMax, uint8 v, bytes32 r, bytes32 s
-    ) external virtual override returns (uint amountA, uint amountB) {
-        require(!_isBlacklisted[to],"Address is blacklisted");
+        uint256 deadline,
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external virtual override returns (uint256 amountA, uint256 amountB) {
         address pair = PlexswapLibrary.pairFor(factory, tokenA, tokenB);
-        uint value = approveMax ? uint(-1) : liquidity;
+        uint256 value = approveMax ? uint256(-1) : liquidity;
         IPlexswapPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);
     }
+
     function removeLiquidityETHWithPermit(
         address token,
-        uint liquidity,
-        uint amountTokenMin,
-        uint amountETHMin,
+        uint256 liquidity,
+        uint256 amountTokenMin,
+        uint256 amountETHMin,
         address to,
-        uint deadline,
-        bool approveMax, uint8 v, bytes32 r, bytes32 s
-    ) external virtual override returns (uint amountToken, uint amountETH) {
-         require(!_isBlacklisted[to],"Address is blacklisted");
+        uint256 deadline,
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external virtual override returns (uint256 amountToken, uint256 amountETH) {
         address pair = PlexswapLibrary.pairFor(factory, token, WETH);
-        uint value = approveMax ? uint(-1) : liquidity;
+        uint256 value = approveMax ? uint256(-1) : liquidity;
         IPlexswapPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         (amountToken, amountETH) = removeLiquidityETH(token, liquidity, amountTokenMin, amountETHMin, to, deadline);
     }
@@ -193,152 +208,162 @@ contract PlexswapRouter is IPlexswapRouter02 {
     // **** REMOVE LIQUIDITY (supporting fee-on-transfer tokens) ****
     function removeLiquidityETHSupportingFeeOnTransferTokens(
         address token,
-        uint liquidity,
-        uint amountTokenMin,
-        uint amountETHMin,
+        uint256 liquidity,
+        uint256 amountTokenMin,
+        uint256 amountETHMin,
         address to,
-        uint deadline
-    ) public virtual override ensure(deadline) returns (uint amountETH) {
-         require(!_isBlacklisted[to],"Address is blacklisted");
-        (, amountETH) = removeLiquidity(
-            token,
-            WETH,
-            liquidity,
-            amountTokenMin,
-            amountETHMin,
-            address(this),
-            deadline
-        );
+        uint256 deadline
+    ) public virtual override ensure(deadline) returns (uint256 amountETH) {
+        (, amountETH) = removeLiquidity(token, WETH, liquidity, amountTokenMin, amountETHMin, address(this), deadline);
         TransferHelper.safeTransfer(token, to, IERC20(token).balanceOf(address(this)));
         IWETH(WETH).withdraw(amountETH);
         TransferHelper.safeTransferETH(to, amountETH);
     }
+
     function removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(
         address token,
-        uint liquidity,
-        uint amountTokenMin,
-        uint amountETHMin,
+        uint256 liquidity,
+        uint256 amountTokenMin,
+        uint256 amountETHMin,
         address to,
-        uint deadline,
-        bool approveMax, uint8 v, bytes32 r, bytes32 s
-    ) external virtual override returns (uint amountETH) {
-         require(!_isBlacklisted[to],"Address is blacklisted");
+        uint256 deadline,
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external virtual override returns (uint256 amountETH) {
         address pair = PlexswapLibrary.pairFor(factory, token, WETH);
-        uint value = approveMax ? uint(-1) : liquidity;
+        uint256 value = approveMax ? uint256(-1) : liquidity;
         IPlexswapPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         amountETH = removeLiquidityETHSupportingFeeOnTransferTokens(
-            token, liquidity, amountTokenMin, amountETHMin, to, deadline
+            token,
+            liquidity,
+            amountTokenMin,
+            amountETHMin,
+            to,
+            deadline
         );
     }
 
     // **** SWAP ****
     // requires the initial amount to have already been sent to the first pair
-    function _swap(uint[] memory amounts, address[] memory path, address _to) internal virtual {
-        for (uint i; i < path.length - 1; i++) {
+    function _swap(
+        uint256[] memory amounts,
+        address[] memory path,
+        address _to
+    ) internal virtual {
+        for (uint256 i; i < path.length - 1; i++) {
             (address input, address output) = (path[i], path[i + 1]);
-            (address token0,) = PlexswapLibrary.sortTokens(input, output);
-            uint amountOut = amounts[i + 1];
-            (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
+            (address token0, ) = PlexswapLibrary.sortTokens(input, output);
+            uint256 amountOut = amounts[i + 1];
+            (uint256 amount0Out, uint256 amount1Out) =
+                input == token0 ? (uint256(0), amountOut) : (amountOut, uint256(0));
             address to = i < path.length - 2 ? PlexswapLibrary.pairFor(factory, output, path[i + 2]) : _to;
-            IPlexswapPair(PlexswapLibrary.pairFor(factory, input, output)).swap(
-                amount0Out, amount1Out, to, new bytes(0)
-            );
+            IPlexswapPair(PlexswapLibrary.pairFor(factory, input, output)).swap(amount0Out, amount1Out, to, new bytes(0));
         }
     }
+
     function swapExactTokensForTokens(
-        uint amountIn,
-        uint amountOutMin,
+        uint256 amountIn,
+        uint256 amountOutMin,
         address[] calldata path,
         address to,
-        uint deadline
-    ) external virtual override ensure(deadline) returns (uint[] memory amounts) {
-        require(!_isBlacklisted[to],"Address is blacklisted");
+        uint256 deadline
+    ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
         amounts = PlexswapLibrary.getAmountsOut(factory, amountIn, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, 'PlexswapRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        require(amounts[amounts.length - 1] >= amountOutMin, "PlexswapRouter: INSUFFICIENT_OUTPUT_AMOUNT");
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, PlexswapLibrary.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0],
+            msg.sender,
+            PlexswapLibrary.pairFor(factory, path[0], path[1]),
+            amounts[0]
         );
         _swap(amounts, path, to);
     }
+
     function swapTokensForExactTokens(
-        uint amountOut,
-        uint amountInMax,
+        uint256 amountOut,
+        uint256 amountInMax,
         address[] calldata path,
         address to,
-        uint deadline
-    ) external virtual override ensure(deadline) returns (uint[] memory amounts) {
-        require(!_isBlacklisted[to],"Address is blacklisted");
+        uint256 deadline
+    ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
         amounts = PlexswapLibrary.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= amountInMax, 'PlexswapRouter: EXCESSIVE_INPUT_AMOUNT');
+        require(amounts[0] <= amountInMax, "PlexswapRouter: EXCESSIVE_INPUT_AMOUNT");
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, PlexswapLibrary.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0],
+            msg.sender,
+            PlexswapLibrary.pairFor(factory, path[0], path[1]),
+            amounts[0]
         );
         _swap(amounts, path, to);
     }
-    function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
-        external
-        virtual
-        override
-        payable
-        ensure(deadline)
-        returns (uint[] memory amounts)
-    {
-        require(path[0] == WETH, 'PlexswapRouter: INVALID_PATH');
-        require(!_isBlacklisted[to],"Address is blacklisted");
+
+    function swapExactETHForTokens(
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external payable virtual override ensure(deadline) returns (uint256[] memory amounts) {
+        require(path[0] == WETH, "PlexswapRouter: INVALID_PATH");
         amounts = PlexswapLibrary.getAmountsOut(factory, msg.value, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, 'PlexswapRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        require(amounts[amounts.length - 1] >= amountOutMin, "PlexswapRouter: INSUFFICIENT_OUTPUT_AMOUNT");
         IWETH(WETH).deposit{value: amounts[0]}();
         assert(IWETH(WETH).transfer(PlexswapLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
     }
-    function swapTokensForExactETH(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
-        external
-        virtual
-        override
-        ensure(deadline)
-        returns (uint[] memory amounts)
-    {
-        require(path[path.length - 1] == WETH, 'PlexswapRouter: INVALID_PATH');
-        require(!_isBlacklisted[to],"Address is blacklisted");
+
+    function swapTokensForExactETH(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
+        require(path[path.length - 1] == WETH, "PlexswapRouter: INVALID_PATH");
         amounts = PlexswapLibrary.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= amountInMax, 'PlexswapRouter: EXCESSIVE_INPUT_AMOUNT');
+        require(amounts[0] <= amountInMax, "PlexswapRouter: EXCESSIVE_INPUT_AMOUNT");
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, PlexswapLibrary.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0],
+            msg.sender,
+            PlexswapLibrary.pairFor(factory, path[0], path[1]),
+            amounts[0]
         );
         _swap(amounts, path, address(this));
         IWETH(WETH).withdraw(amounts[amounts.length - 1]);
         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
     }
-    function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
-        external
-        virtual
-        override
-        ensure(deadline)
-        returns (uint[] memory amounts)
-    {
-        require(path[path.length - 1] == WETH, 'PlexswapRouter: INVALID_PATH');
-        require(!_isBlacklisted[to],"Address is blacklisted");
+
+    function swapExactTokensForETH(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
+        require(path[path.length - 1] == WETH, "PlexswapRouter: INVALID_PATH");
         amounts = PlexswapLibrary.getAmountsOut(factory, amountIn, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, 'PlexswapRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        require(amounts[amounts.length - 1] >= amountOutMin, "PlexswapRouter: INSUFFICIENT_OUTPUT_AMOUNT");
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, PlexswapLibrary.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0],
+            msg.sender,
+            PlexswapLibrary.pairFor(factory, path[0], path[1]),
+            amounts[0]
         );
         _swap(amounts, path, address(this));
         IWETH(WETH).withdraw(amounts[amounts.length - 1]);
         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
     }
-    function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline)
-        external
-        virtual
-        override
-        payable
-        ensure(deadline)
-        returns (uint[] memory amounts)
-    {
-        require(path[0] == WETH, 'PlexswapRouter: INVALID_PATH');
-        require(!_isBlacklisted[to],"Address is blacklisted");
+
+    function swapETHForExactTokens(
+        uint256 amountOut,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external payable virtual override ensure(deadline) returns (uint256[] memory amounts) {
+        require(path[0] == WETH, "PlexswapRouter: INVALID_PATH");
         amounts = PlexswapLibrary.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= msg.value, 'PlexswapRouter: EXCESSIVE_INPUT_AMOUNT');
+        require(amounts[0] <= msg.value, "PlexswapRouter: EXCESSIVE_INPUT_AMOUNT");
         IWETH(WETH).deposit{value: amounts[0]}();
         assert(IWETH(WETH).transfer(PlexswapLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
@@ -349,149 +374,138 @@ contract PlexswapRouter is IPlexswapRouter02 {
     // **** SWAP (supporting fee-on-transfer tokens) ****
     // requires the initial amount to have already been sent to the first pair
     function _swapSupportingFeeOnTransferTokens(address[] memory path, address _to) internal virtual {
-        for (uint i; i < path.length - 1; i++) {
+        for (uint256 i; i < path.length - 1; i++) {
             (address input, address output) = (path[i], path[i + 1]);
-            (address token0,) = PlexswapLibrary.sortTokens(input, output);
+            (address token0, ) = PlexswapLibrary.sortTokens(input, output);
             IPlexswapPair pair = IPlexswapPair(PlexswapLibrary.pairFor(factory, input, output));
-            uint amountInput;
-            uint amountOutput;
-            { // scope to avoid stack too deep errors
-            (uint reserve0, uint reserve1,) = pair.getReserves();
-            (uint reserveInput, uint reserveOutput) = input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
-            amountInput = IERC20(input).balanceOf(address(pair)).sub(reserveInput);
-            amountOutput = PlexswapLibrary.getAmountOut(amountInput, reserveInput, reserveOutput);
+            uint256 amountInput;
+            uint256 amountOutput;
+            {
+                // scope to avoid stack too deep errors
+                (uint256 reserve0, uint256 reserve1, ) = pair.getReserves();
+                (uint256 reserveInput, uint256 reserveOutput) =
+                    input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
+                amountInput = IERC20(input).balanceOf(address(pair)).sub(reserveInput);
+                amountOutput = PlexswapLibrary.getAmountOut(amountInput, reserveInput, reserveOutput);
             }
-            (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOutput) : (amountOutput, uint(0));
+            (uint256 amount0Out, uint256 amount1Out) =
+                input == token0 ? (uint256(0), amountOutput) : (amountOutput, uint256(0));
             address to = i < path.length - 2 ? PlexswapLibrary.pairFor(factory, output, path[i + 2]) : _to;
             pair.swap(amount0Out, amount1Out, to, new bytes(0));
         }
     }
+
     function swapExactTokensForTokensSupportingFeeOnTransferTokens(
-        uint amountIn,
-        uint amountOutMin,
+        uint256 amountIn,
+        uint256 amountOutMin,
         address[] calldata path,
         address to,
-        uint deadline
+        uint256 deadline
     ) external virtual override ensure(deadline) {
-        require(!_isBlacklisted[to],"Address is blacklisted");
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, PlexswapLibrary.pairFor(factory, path[0], path[1]), amountIn
+            path[0],
+            msg.sender,
+            PlexswapLibrary.pairFor(factory, path[0], path[1]),
+            amountIn
         );
-        uint balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
+        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
             IERC20(path[path.length - 1]).balanceOf(to).sub(balanceBefore) >= amountOutMin,
-            'PlexswapRouter: INSUFFICIENT_OUTPUT_AMOUNT'
+            "PlexswapRouter: INSUFFICIENT_OUTPUT_AMOUNT"
         );
     }
+
     function swapExactETHForTokensSupportingFeeOnTransferTokens(
-        uint amountOutMin,
+        uint256 amountOutMin,
         address[] calldata path,
         address to,
-        uint deadline
-    )
-        external
-        virtual
-        override
-        payable
-        ensure(deadline)
-    {
-        require(!_isBlacklisted[to],"Address is blacklisted");
-        require(path[0] == WETH, 'PlexswapRouter: INVALID_PATH');
-        uint amountIn = msg.value;
+        uint256 deadline
+    ) external payable virtual override ensure(deadline) {
+        require(path[0] == WETH, "PlexswapRouter: INVALID_PATH");
+        uint256 amountIn = msg.value;
         IWETH(WETH).deposit{value: amountIn}();
         assert(IWETH(WETH).transfer(PlexswapLibrary.pairFor(factory, path[0], path[1]), amountIn));
-        uint balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
+        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
             IERC20(path[path.length - 1]).balanceOf(to).sub(balanceBefore) >= amountOutMin,
-            'PlexswapRouter: INSUFFICIENT_OUTPUT_AMOUNT'
+            "PlexswapRouter: INSUFFICIENT_OUTPUT_AMOUNT"
         );
     }
+
     function swapExactTokensForETHSupportingFeeOnTransferTokens(
-        uint amountIn,
-        uint amountOutMin,
+        uint256 amountIn,
+        uint256 amountOutMin,
         address[] calldata path,
         address to,
-        uint deadline
-    )
-        external
-        virtual
-        override
-        ensure(deadline)
-    {
-        require(!_isBlacklisted[to],"Address is blacklisted");
-        require(path[path.length - 1] == WETH, 'PlexswapRouter: INVALID_PATH');
+        uint256 deadline
+    ) external virtual override ensure(deadline) {
+        require(path[path.length - 1] == WETH, "PlexswapRouter: INVALID_PATH");
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, PlexswapLibrary.pairFor(factory, path[0], path[1]), amountIn
+            path[0],
+            msg.sender,
+            PlexswapLibrary.pairFor(factory, path[0], path[1]),
+            amountIn
         );
         _swapSupportingFeeOnTransferTokens(path, address(this));
-        uint amountOut = IERC20(WETH).balanceOf(address(this));
-        require(amountOut >= amountOutMin, 'PlexswapRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        uint256 amountOut = IERC20(WETH).balanceOf(address(this));
+        require(amountOut >= amountOutMin, "PlexswapRouter: INSUFFICIENT_OUTPUT_AMOUNT");
         IWETH(WETH).withdraw(amountOut);
         TransferHelper.safeTransferETH(to, amountOut);
     }
 
     // **** LIBRARY FUNCTIONS ****
-    function quote(uint amountA, uint reserveA, uint reserveB) public pure virtual override returns (uint amountB) {
+    function quote(
+        uint256 amountA,
+        uint256 reserveA,
+        uint256 reserveB
+    ) public pure virtual override returns (uint256 amountB) {
         return PlexswapLibrary.quote(amountA, reserveA, reserveB);
     }
 
-    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut)
-        public
-        pure
-        virtual
-        override
-        returns (uint amountOut)
-    {
+    function getAmountOut(
+        uint256 amountIn,
+        uint256 reserveIn,
+        uint256 reserveOut
+    ) public pure virtual override returns (uint256 amountOut) {
         return PlexswapLibrary.getAmountOut(amountIn, reserveIn, reserveOut);
     }
 
-    function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut)
-        public
-        pure
-        virtual
-        override
-        returns (uint amountIn)
-    {
+    function getAmountIn(
+        uint256 amountOut,
+        uint256 reserveIn,
+        uint256 reserveOut
+    ) public pure virtual override returns (uint256 amountIn) {
         return PlexswapLibrary.getAmountIn(amountOut, reserveIn, reserveOut);
     }
 
-    function getAmountsOut(uint amountIn, address[] memory path)
+    function getAmountsOut(uint256 amountIn, address[] memory path)
         public
         view
         virtual
         override
-        returns (uint[] memory amounts)
+        returns (uint256[] memory amounts)
     {
         return PlexswapLibrary.getAmountsOut(factory, amountIn, path);
     }
 
-    function getAmountsIn(uint amountOut, address[] memory path)
+    function getAmountsIn(uint256 amountOut, address[] memory path)
         public
         view
         virtual
         override
-        returns (uint[] memory amounts)
+        returns (uint256[] memory amounts)
     {
         return PlexswapLibrary.getAmountsIn(factory, amountOut, path);
     }
 
-    function blacklistAddress(address account) public onlyOwner() {
-        _isBlacklisted[account] = true;
-    }
-
-    function unBlacklistAddress(address account) public onlyOwner() {
-        _isBlacklisted[account] = false;
-    }
-
-    function setPartnerStatus(address account, bool status) public onlyOwner {
+    function setPartnerStatus (address account, bool status) external onlyOwner {
         _isApprovedPartner[account] = status;
     }
 
-    function lockLP(address LPtoken, uint256 time) public onlyOwner {
-        _lpTokenLockStatus[LPtoken] = true;
-        _locktime[LPtoken] = block.timestamp + time;
+    function setRouterStatus (bool status) external onlyOwner {
+         isUnrestrictedRouter = status;
     }
 
 }

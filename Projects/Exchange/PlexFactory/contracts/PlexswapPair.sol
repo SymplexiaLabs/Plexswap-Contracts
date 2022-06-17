@@ -1,5 +1,4 @@
-//SPDX-License-Identifier: MIT
-
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.5.16;
 
 import './IPlexswapPair.sol';
@@ -87,36 +86,7 @@ contract PlexswapPair is IPlexswapPair, PlexswapERC20 {
         emit Sync(reserve0, reserve1);
     }
 
-    function _takeFee(address token, uint amountOut, uint reserveIn, uint reserveOut) private returns (uint _fee) {
-        require(token == token0 || token == token1, "Plexswap: INVALID_TOKEN");
-        address feeTo = IPlexswapFactory(factory).feeTo();
-        uint _totalSupply = totalSupply;
-
-        bool feeOn = feeTo != address(0);
-        uint amountOutWithoutFee = amountOut.mul(10000) / 9975;
-        uint burnFee = amountOutWithoutFee.mul(3) / 10000;
-        uint supportFee = amountOutWithoutFee.mul(5) / 10000;
-
-        uint numerator = reserveIn.mul(burnFee);
-        uint denominator = reserveOut.sub(burnFee);
-        uint amountIn = numerator / denominator;
-
-        uint liquidity = Math.min(amountIn.mul(_totalSupply) / reserveIn, burnFee.mul(_totalSupply) / reserveOut);
-        _mint(0x000000000000000000000000000000000000dEaD, liquidity);
-        _fee = burnFee;
-
-        if(feeOn) {
-            numerator = reserveIn.mul(supportFee);
-            denominator = reserveOut.sub(supportFee);
-            amountIn = numerator / denominator;
-
-            liquidity = Math.min(amountIn.mul(_totalSupply) / reserveIn, supportFee.mul(_totalSupply) / reserveOut);
-            _mint(feeTo, liquidity);
-            _fee = _fee.add(supportFee);
-        }
-    }
-
-    // if fee is on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
+    // if fee is on, mint liquidity equivalent to 8/25 of the growth in sqrt(k)
     function _mintFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
         address feeTo = IPlexswapFactory(factory).feeTo();
         feeOn = feeTo != address(0);
@@ -126,8 +96,8 @@ contract PlexswapPair is IPlexswapPair, PlexswapERC20 {
                 uint rootK = Math.sqrt(uint(_reserve0).mul(_reserve1));
                 uint rootKLast = Math.sqrt(_kLast);
                 if (rootK > rootKLast) {
-                    uint numerator = totalSupply.mul(rootK.sub(rootKLast));
-                    uint denominator = rootK.mul(3).add(rootKLast);
+                    uint numerator = totalSupply.mul(rootK.sub(rootKLast)).mul(8);
+                    uint denominator = rootK.mul(17).add(rootKLast.mul(8));
                     uint liquidity = numerator / denominator;
                     if (liquidity > 0) _mint(feeTo, liquidity);
                 }
@@ -198,14 +168,8 @@ contract PlexswapPair is IPlexswapPair, PlexswapERC20 {
         address _token0 = token0;
         address _token1 = token1;
         require(to != _token0 && to != _token1, 'Plexswap: INVALID_TO');
-        if (amount0Out > 0) {
-            _takeFee(_token0, amount0Out, _reserve1, reserve0);
-            _safeTransfer(_token0, to, amount0Out);
-        } // optimistically transfer tokens
-        if (amount1Out > 0) {
-            _takeFee(_token1, amount1Out, _reserve0, _reserve1);
-            _safeTransfer(_token1, to, amount1Out);
-        } // optimistically transfer tokens
+        if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
+        if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
         if (data.length > 0) IPlexswapCallee(to).plexswapCall(msg.sender, amount0Out, amount1Out, data);
         balance0 = IERC20(_token0).balanceOf(address(this));
         balance1 = IERC20(_token1).balanceOf(address(this));
@@ -214,9 +178,9 @@ contract PlexswapPair is IPlexswapPair, PlexswapERC20 {
         uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
         require(amount0In > 0 || amount1In > 0, 'Plexswap: INSUFFICIENT_INPUT_AMOUNT');
         { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
-        uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(2));
-        uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(2));
-        require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(1000**2), 'Plexswap: K');
+        uint balance0Adjusted = (balance0.mul(10000).sub(amount0In.mul(25)));
+        uint balance1Adjusted = (balance1.mul(10000).sub(amount1In.mul(25)));
+        require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(10000**2), 'Plexswap: K');
         }
 
         _update(balance0, balance1, _reserve0, _reserve1);

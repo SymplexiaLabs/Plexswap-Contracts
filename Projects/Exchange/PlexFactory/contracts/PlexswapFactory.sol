@@ -1,5 +1,4 @@
-//SPDX-License-Identifier: MIT
-
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.5.16;
 
 import './IPlexswapFactory.sol';
@@ -14,7 +13,7 @@ contract PlexswapFactory is IPlexswapFactory {
     mapping(address => mapping(address => address)) public getPair;
     address[] public allPairs;
 
-    event PairCreated(address indexed token0, address indexed token1, address pair, uint length);
+    event PairCreated(address indexed token0, address indexed token1, address pair, uint);
 
     constructor(address _feeToSetter) public {
         feeToSetter = _feeToSetter;
@@ -50,5 +49,4 @@ contract PlexswapFactory is IPlexswapFactory {
         require(msg.sender == feeToSetter, 'Plexswap: FORBIDDEN');
         feeToSetter = _feeToSetter;
     }
-
 }

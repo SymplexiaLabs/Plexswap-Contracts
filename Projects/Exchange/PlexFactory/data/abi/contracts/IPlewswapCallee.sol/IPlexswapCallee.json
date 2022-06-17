@@ -23,7 +23,7 @@
         "type": "bytes"
       }
     ],
-    "name": "plexswapCall",
+    "name": "pancakeCall",
     "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",
