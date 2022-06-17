@@ -29,7 +29,7 @@ library PlexswapLibrary {
                         hex"ff",
                         factory,
                         keccak256(abi.encodePacked(token0, token1)),
-                        hex"a5934690703a592a07e841ca29d5e5c79b5e22ed4749057bb216dc31100be1c0" // init code hash
+                        hex"0ac3000920e9b3c229fdd8305aa7b28c16e5d16c66e4983a4e2ff27aff8e4b53" // init code hash
                     )
                 )
             )

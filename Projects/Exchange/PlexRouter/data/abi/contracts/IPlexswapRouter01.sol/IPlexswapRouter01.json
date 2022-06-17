@@ -9,7 +9,7 @@
         "type": "address"
       }
     ],
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -140,7 +140,7 @@
         "type": "address"
       }
     ],
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
