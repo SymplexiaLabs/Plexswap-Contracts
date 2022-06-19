@@ -3,7 +3,7 @@
     "inputs": [
       {
         "internalType": "contract WayaToken",
-        "name": "_cake",
+        "name": "_waya",
         "type": "address"
       }
     ],
@@ -242,7 +242,7 @@
   },
   {
     "inputs": [],
-    "name": "cake",
+    "name": "waya",
     "outputs": [
       {
         "internalType": "contract WayaToken",

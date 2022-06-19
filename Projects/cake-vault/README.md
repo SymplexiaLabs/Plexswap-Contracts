@@ -1,8 +1,8 @@
-# Pancake Cake Vault
+# Panwaya Waya Vault
 
 ## Description
 
-Pancakeswap Cake Vault for the CAKE token from the MasterChef.
+Panwayaswap Waya Vault for the WAYA token from the TaskMaster.
 
 ## Deployment
 
@@ -26,4 +26,4 @@ harvest()
 
 ## Common Errors
 
-Refer to `test/CakeVault.test.ts`
+Refer to `test/WayaVault.test.ts`

@@ -14,20 +14,20 @@ function encodeParameters(types, values) {
 }
 
 contract("Timelock", ([alice, bob, carol, dev, minter]) => {
-  let cake, syrup, lp1, chef, timelock;
+  let waya, gaya, lp1, chef, timelock;
 
   beforeEach(async () => {
-    cake = await WayaToken.new({ from: alice });
+    waya = await WayaToken.new({ from: alice });
     timelock = await Timelock.new(bob, "28800", { from: alice }); //8hours
   });
 
   it("should not allow non-owner to do operation", async () => {
-    await cake.transferOwnership(timelock.address, { from: alice });
-    await expectRevert(cake.transferOwnership(carol, { from: alice }), "Ownable: caller is not the owner");
-    await expectRevert(cake.transferOwnership(carol, { from: bob }), "Ownable: caller is not the owner");
+    await waya.transferOwnership(timelock.address, { from: alice });
+    await expectRevert(waya.transferOwnership(carol, { from: alice }), "Ownable: caller is not the owner");
+    await expectRevert(waya.transferOwnership(carol, { from: bob }), "Ownable: caller is not the owner");
     await expectRevert(
       timelock.queueTransaction(
-        cake.address,
+        waya.address,
         "0",
         "transferOwnership(address)",
         encodeParameters(["address"], [carol]),
@@ -39,10 +39,10 @@ contract("Timelock", ([alice, bob, carol, dev, minter]) => {
   });
 
   it("should do the timelock thing", async () => {
-    await cake.transferOwnership(timelock.address, { from: alice });
+    await waya.transferOwnership(timelock.address, { from: alice });
     const eta = (await time.latest()).add(time.duration.hours(9));
     await timelock.queueTransaction(
-      cake.address,
+      waya.address,
       "0",
       "transferOwnership(address)",
       encodeParameters(["address"], [carol]),
@@ -52,7 +52,7 @@ contract("Timelock", ([alice, bob, carol, dev, minter]) => {
     await time.increase(time.duration.hours(1));
     await expectRevert(
       timelock.executeTransaction(
-        cake.address,
+        waya.address,
         "0",
         "transferOwnership(address)",
         encodeParameters(["address"], [carol]),
@@ -63,22 +63,22 @@ contract("Timelock", ([alice, bob, carol, dev, minter]) => {
     );
     await time.increase(time.duration.hours(8));
     await timelock.executeTransaction(
-      cake.address,
+      waya.address,
       "0",
       "transferOwnership(address)",
       encodeParameters(["address"], [carol]),
       eta,
       { from: bob }
     );
-    assert.equal((await cake.owner()).valueOf(), carol);
+    assert.equal((await waya.owner()).valueOf(), carol);
   });
 
   it("should also work with TaskMaster", async () => {
     lp1 = await MockBEP20.new("LPToken", "LP", "10000000000", { from: minter });
-    syrup = await GayaBarn.new(cake.address, { from: minter });
-    chef = await TaskMaster.new(cake.address, syrup.address, dev, "1000", "0", { from: alice });
-    await cake.transferOwnership(chef.address, { from: alice });
-    await syrup.transferOwnership(chef.address, { from: minter });
+    gaya = await GayaBarn.new(waya.address, { from: minter });
+    chef = await TaskMaster.new(waya.address, gaya.address, dev, "1000", "0", { from: alice });
+    await waya.transferOwnership(chef.address, { from: alice });
+    await gaya.transferOwnership(chef.address, { from: minter });
     await chef.add("100", lp1.address, true, { from: alice });
     await chef.transferOwnership(timelock.address, { from: alice });
     await expectRevert(chef.add("100", lp1.address, true, { from: alice }), "Ownable: caller is not the owner");

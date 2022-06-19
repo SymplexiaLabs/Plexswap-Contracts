@@ -4,7 +4,7 @@ export default {
     mainnet: "0x0000000000000000000000000000000000000000",
     testnet: "0x0000000000000000000000000000000000000000",
   },
-  CakeVault: {
+  WayaVault: {
     mainnet: "0xa80240eb5d7e05d3f250cf000eec0891d00b51cc",
     testnet: "0x0000000000000000000000000000000000000000",
   },
@@ -13,16 +13,16 @@ export default {
     mainnet: "0x0000000000000000000000000000000000000000",
     testnet: "0x0000000000000000000000000000000000000000",
   },
-  MasterChef: {
-    // Syrup Pool: Cake Pool
+  TaskMaster: {
+    // Gaya Pool: Waya Pool
     mainnet: "0x73feaa1eE314F8c655E354234017bE2193C9E24E",
     testnet: "0x0000000000000000000000000000000000000000",
   },
-  Cake: {
+  Waya: {
     mainnet: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82",
     testnet: "0x0000000000000000000000000000000000000000",
   },
-  Syrup: {
+  Gaya: {
     mainnet: "0x009cF7bC57584b7998236eff51b98A168DceA9B0",
     testnet: "0x0000000000000000000000000000000000000000",
   },

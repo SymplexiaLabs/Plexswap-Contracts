@@ -3,7 +3,7 @@
 // https://github.com/sc-forks/solidity-coverage/blob/master/HARDHAT_README.md#usage
 
 module.exports = {
-  skipFiles: ["test/CakeToken.sol", "test/MasterChef.sol", "test/SyrupBar.sol"],
+  skipFiles: ["test/WayaToken.sol", "test/TaskMaster.sol", "test/GayaBarn.sol"],
   measureStatementCoverage: false,
   measureFunctionCoverage: true,
 };

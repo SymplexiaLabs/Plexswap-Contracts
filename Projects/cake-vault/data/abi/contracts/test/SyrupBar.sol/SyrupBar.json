@@ -2,8 +2,8 @@
   {
     "inputs": [
       {
-        "internalType": "contract CakeToken",
-        "name": "_cake",
+        "internalType": "contract WayaToken",
+        "name": "_waya",
         "type": "address"
       }
     ],
@@ -242,10 +242,10 @@
   },
   {
     "inputs": [],
-    "name": "cake",
+    "name": "waya",
     "outputs": [
       {
-        "internalType": "contract CakeToken",
+        "internalType": "contract WayaToken",
         "name": "",
         "type": "address"
       }
@@ -558,7 +558,7 @@
         "type": "uint256"
       }
     ],
-    "name": "safeCakeTransfer",
+    "name": "safeWayaTransfer",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

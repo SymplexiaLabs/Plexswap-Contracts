@@ -4,9 +4,9 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-// CakeToken with Governance.
-contract CakeToken is ERC20("PancakeSwap Token", "Cake"), Ownable {
-    /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
+// WayaToken with Governance.
+contract WayaToken is ERC20("PanwayaSwap Token", "Waya"), Ownable {
+    /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (TaskMaster).
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
@@ -92,9 +92,9 @@ contract CakeToken is ERC20("PancakeSwap Token", "Cake"), Ownable {
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
 
         address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "CAKE::delegateBySig: invalid signature");
-        require(nonce == nonces[signatory]++, "CAKE::delegateBySig: invalid nonce");
-        require(now <= expiry, "CAKE::delegateBySig: signature expired");
+        require(signatory != address(0), "WAYA::delegateBySig: invalid signature");
+        require(nonce == nonces[signatory]++, "WAYA::delegateBySig: invalid nonce");
+        require(now <= expiry, "WAYA::delegateBySig: signature expired");
         return _delegate(signatory, delegatee);
     }
 
@@ -116,7 +116,7 @@ contract CakeToken is ERC20("PancakeSwap Token", "Cake"), Ownable {
      * @return The number of votes the account had as of the given block
      */
     function getPriorVotes(address account, uint256 blockNumber) external view returns (uint256) {
-        require(blockNumber < block.number, "CAKE::getPriorVotes: not yet determined");
+        require(blockNumber < block.number, "WAYA::getPriorVotes: not yet determined");
 
         uint32 nCheckpoints = numCheckpoints[account];
         if (nCheckpoints == 0) {
@@ -151,7 +151,7 @@ contract CakeToken is ERC20("PancakeSwap Token", "Cake"), Ownable {
 
     function _delegate(address delegator, address delegatee) internal {
         address currentDelegate = _delegates[delegator];
-        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying CAKEs (not scaled);
+        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying WAYAs (not scaled);
         _delegates[delegator] = delegatee;
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
@@ -189,7 +189,7 @@ contract CakeToken is ERC20("PancakeSwap Token", "Cake"), Ownable {
         uint256 oldVotes,
         uint256 newVotes
     ) internal {
-        uint32 blockNumber = safe32(block.number, "CAKE::_writeCheckpoint: block number exceeds 32 bits");
+        uint32 blockNumber = safe32(block.number, "WAYA::_writeCheckpoint: block number exceeds 32 bits");
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;

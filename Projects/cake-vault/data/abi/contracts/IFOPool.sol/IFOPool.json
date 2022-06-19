@@ -12,8 +12,8 @@
         "type": "address"
       },
       {
-        "internalType": "contract IMasterChef",
-        "name": "_masterchef",
+        "internalType": "contract ITaskMaster",
+        "name": "_taskmaster",
         "type": "address"
       },
       {
@@ -365,7 +365,7 @@
   },
   {
     "inputs": [],
-    "name": "calculateHarvestCakeRewards",
+    "name": "calculateHarvestWayaRewards",
     "outputs": [
       {
         "internalType": "uint256",
@@ -378,7 +378,7 @@
   },
   {
     "inputs": [],
-    "name": "calculateTotalPendingCakeRewards",
+    "name": "calculateTotalPendingWayaRewards",
     "outputs": [
       {
         "internalType": "uint256",
@@ -509,10 +509,10 @@
   },
   {
     "inputs": [],
-    "name": "masterchef",
+    "name": "taskmaster",
     "outputs": [
       {
-        "internalType": "contract IMasterChef",
+        "internalType": "contract ITaskMaster",
         "name": "",
         "type": "address"
       }
@@ -828,7 +828,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "cakeAtLastUserAction",
+        "name": "wayaAtLastUserAction",
         "type": "uint256"
       },
       {

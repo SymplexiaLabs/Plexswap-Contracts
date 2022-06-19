@@ -3,19 +3,19 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "./CakeVault.sol";
+import "./WayaVault.sol";
 
 contract VaultOwner is Ownable {
     using SafeERC20 for IERC20;
 
-    CakeVault public immutable cakeVault;
+    WayaVault public immutable wayaVault;
 
     /**
      * @notice Constructor
-     * @param _cakeVaultAddress: CakeVault contract address
+     * @param _wayaVaultAddress: WayaVault contract address
      */
-    constructor(address _cakeVaultAddress) public {
-        cakeVault = CakeVault(_cakeVaultAddress);
+    constructor(address _wayaVaultAddress) public {
+        wayaVault = WayaVault(_wayaVaultAddress);
     }
 
     /**
@@ -24,7 +24,7 @@ contract VaultOwner is Ownable {
      * It makes the admin == owner.
      */
     function setAdmin() external onlyOwner {
-        cakeVault.setAdmin(address(this));
+        wayaVault.setAdmin(address(this));
     }
 
     /**
@@ -32,7 +32,7 @@ contract VaultOwner is Ownable {
      * @dev Only callable by the contract owner.
      */
     function setTreasury(address _treasury) external onlyOwner {
-        cakeVault.setTreasury(_treasury);
+        wayaVault.setTreasury(_treasury);
     }
 
     /**
@@ -40,7 +40,7 @@ contract VaultOwner is Ownable {
      * @dev Only callable by the contract owner.
      */
     function setPerformanceFee(uint256 _performanceFee) external onlyOwner {
-        cakeVault.setPerformanceFee(_performanceFee);
+        wayaVault.setPerformanceFee(_performanceFee);
     }
 
     /**
@@ -48,7 +48,7 @@ contract VaultOwner is Ownable {
      * @dev Only callable by the contract owner.
      */
     function setCallFee(uint256 _callFee) external onlyOwner {
-        cakeVault.setCallFee(_callFee);
+        wayaVault.setCallFee(_callFee);
     }
 
     /**
@@ -56,7 +56,7 @@ contract VaultOwner is Ownable {
      * @dev Only callable by the contract owner.
      */
     function setWithdrawFee(uint256 _withdrawFee) external onlyOwner {
-        cakeVault.setWithdrawFee(_withdrawFee);
+        wayaVault.setWithdrawFee(_withdrawFee);
     }
 
     /**
@@ -64,14 +64,14 @@ contract VaultOwner is Ownable {
      * @dev Only callable by the contract owner.
      */
     function setWithdrawFeePeriod(uint256 _withdrawFeePeriod) external onlyOwner {
-        cakeVault.setWithdrawFeePeriod(_withdrawFeePeriod);
+        wayaVault.setWithdrawFeePeriod(_withdrawFeePeriod);
     }
 
     /**
-     * @notice Withdraw unexpected tokens sent to the Cake Vault
+     * @notice Withdraw unexpected tokens sent to the Waya Vault
      */
     function inCaseTokensGetStuck(address _token) external onlyOwner {
-        cakeVault.inCaseTokensGetStuck(_token);
+        wayaVault.inCaseTokensGetStuck(_token);
         uint256 amount = IERC20(_token).balanceOf(address(this));
         IERC20(_token).safeTransfer(msg.sender, amount);
     }
@@ -81,7 +81,7 @@ contract VaultOwner is Ownable {
      * @dev Only possible when contract not paused.
      */
     function pause() external onlyOwner {
-        cakeVault.pause();
+        wayaVault.pause();
     }
 
     /**
@@ -89,6 +89,6 @@ contract VaultOwner is Ownable {
      * @dev Only possible when contract is paused.
      */
     function unpause() external onlyOwner {
-        cakeVault.unpause();
+        wayaVault.unpause();
     }
 }

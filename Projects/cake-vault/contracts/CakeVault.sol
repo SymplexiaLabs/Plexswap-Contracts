@@ -5,23 +5,23 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
-import "./interfaces/IMasterChef.sol";
+import "./interfaces/ITaskMaster.sol";
 
-contract CakeVault is Ownable, Pausable {
+contract WayaVault is Ownable, Pausable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
     struct UserInfo {
         uint256 shares; // number of shares for a user
         uint256 lastDepositedTime; // keeps track of deposited time for potential penalty
-        uint256 cakeAtLastUserAction; // keeps track of cake deposited at the last user action
+        uint256 wayaAtLastUserAction; // keeps track of waya deposited at the last user action
         uint256 lastUserActionTime; // keeps track of the last user action time
     }
 
-    IERC20 public immutable token; // Cake token
-    IERC20 public immutable receiptToken; // Syrup token
+    IERC20 public immutable token; // Waya token
+    IERC20 public immutable receiptToken; // Gaya token
 
-    IMasterChef public immutable masterchef;
+    ITaskMaster public immutable taskmaster;
 
     mapping(address => UserInfo) public userInfo;
 
@@ -48,27 +48,27 @@ contract CakeVault is Ownable, Pausable {
 
     /**
      * @notice Constructor
-     * @param _token: Cake token contract
-     * @param _receiptToken: Syrup token contract
-     * @param _masterchef: MasterChef contract
+     * @param _token: Waya token contract
+     * @param _receiptToken: Gaya token contract
+     * @param _taskmaster: TaskMaster contract
      * @param _admin: address of the admin
      * @param _treasury: address of the treasury (collects fees)
      */
     constructor(
         IERC20 _token,
         IERC20 _receiptToken,
-        IMasterChef _masterchef,
+        ITaskMaster _taskmaster,
         address _admin,
         address _treasury
     ) public {
         token = _token;
         receiptToken = _receiptToken;
-        masterchef = _masterchef;
+        taskmaster = _taskmaster;
         admin = _admin;
         treasury = _treasury;
 
         // Infinite approve
-        IERC20(_token).safeApprove(address(_masterchef), uint256(-1));
+        IERC20(_token).safeApprove(address(_taskmaster), uint256(-1));
     }
 
     /**
@@ -89,9 +89,9 @@ contract CakeVault is Ownable, Pausable {
     }
 
     /**
-     * @notice Deposits funds into the Cake Vault
+     * @notice Deposits funds into the Waya Vault
      * @dev Only possible when contract not paused.
-     * @param _amount: number of tokens to deposit (in CAKE)
+     * @param _amount: number of tokens to deposit (in WAYA)
      */
     function deposit(uint256 _amount) external whenNotPaused notContract {
         require(_amount > 0, "Nothing to deposit");
@@ -111,7 +111,7 @@ contract CakeVault is Ownable, Pausable {
 
         totalShares = totalShares.add(currentShares);
 
-        user.cakeAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
+        user.wayaAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
         user.lastUserActionTime = block.timestamp;
 
         _earn();
@@ -127,11 +127,11 @@ contract CakeVault is Ownable, Pausable {
     }
 
     /**
-     * @notice Reinvests CAKE tokens into MasterChef
+     * @notice Reinvests WAYA tokens into TaskMaster
      * @dev Only possible when contract not paused.
      */
     function harvest() external notContract whenNotPaused {
-        IMasterChef(masterchef).leaveStaking(0);
+        ITaskMaster(taskmaster).leaveStaking(0);
 
         uint256 bal = available();
         uint256 currentPerformanceFee = bal.mul(performanceFee).div(10000);
@@ -205,15 +205,15 @@ contract CakeVault is Ownable, Pausable {
     }
 
     /**
-     * @notice Withdraws from MasterChef to Vault without caring about rewards.
+     * @notice Withdraws from TaskMaster to Vault without caring about rewards.
      * @dev EMERGENCY ONLY. Only callable by the contract admin.
      */
     function emergencyWithdraw() external onlyAdmin {
-        IMasterChef(masterchef).emergencyWithdraw(0);
+        ITaskMaster(taskmaster).emergencyWithdraw(0);
     }
 
     /**
-     * @notice Withdraw unexpected tokens sent to the Cake Vault
+     * @notice Withdraw unexpected tokens sent to the Waya Vault
      */
     function inCaseTokensGetStuck(address _token) external onlyAdmin {
         require(_token != address(token), "Token cannot be same as deposit token");
@@ -243,10 +243,10 @@ contract CakeVault is Ownable, Pausable {
 
     /**
      * @notice Calculates the expected harvest reward from third party
-     * @return Expected reward to collect in CAKE
+     * @return Expected reward to collect in WAYA
      */
-    function calculateHarvestCakeRewards() external view returns (uint256) {
-        uint256 amount = IMasterChef(masterchef).pendingCake(0, address(this));
+    function calculateHarvestWayaRewards() external view returns (uint256) {
+        uint256 amount = ITaskMaster(taskmaster).pendingWaya(0, address(this));
         amount = amount.add(available());
         uint256 currentCallFee = amount.mul(callFee).div(10000);
 
@@ -255,10 +255,10 @@ contract CakeVault is Ownable, Pausable {
 
     /**
      * @notice Calculates the total pending rewards that can be restaked
-     * @return Returns total pending cake rewards
+     * @return Returns total pending waya rewards
      */
-    function calculateTotalPendingCakeRewards() external view returns (uint256) {
-        uint256 amount = IMasterChef(masterchef).pendingCake(0, address(this));
+    function calculateTotalPendingWayaRewards() external view returns (uint256) {
+        uint256 amount = ITaskMaster(taskmaster).pendingWaya(0, address(this));
         amount = amount.add(available());
 
         return amount;
@@ -272,7 +272,7 @@ contract CakeVault is Ownable, Pausable {
     }
 
     /**
-     * @notice Withdraws from funds from the Cake Vault
+     * @notice Withdraws from funds from the Waya Vault
      * @param _shares: Number of shares to withdraw
      */
     function withdraw(uint256 _shares) public notContract {
@@ -287,7 +287,7 @@ contract CakeVault is Ownable, Pausable {
         uint256 bal = available();
         if (bal < currentAmount) {
             uint256 balWithdraw = currentAmount.sub(bal);
-            IMasterChef(masterchef).leaveStaking(balWithdraw);
+            ITaskMaster(taskmaster).leaveStaking(balWithdraw);
             uint256 balAfter = available();
             uint256 diff = balAfter.sub(bal);
             if (diff < balWithdraw) {
@@ -302,9 +302,9 @@ contract CakeVault is Ownable, Pausable {
         }
 
         if (user.shares > 0) {
-            user.cakeAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
+            user.wayaAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
         } else {
-            user.cakeAtLastUserAction = 0;
+            user.wayaAtLastUserAction = 0;
         }
 
         user.lastUserActionTime = block.timestamp;
@@ -324,20 +324,20 @@ contract CakeVault is Ownable, Pausable {
 
     /**
      * @notice Calculates the total underlying tokens
-     * @dev It includes tokens held by the contract and held in MasterChef
+     * @dev It includes tokens held by the contract and held in TaskMaster
      */
     function balanceOf() public view returns (uint256) {
-        (uint256 amount, ) = IMasterChef(masterchef).userInfo(0, address(this));
+        (uint256 amount, ) = ITaskMaster(taskmaster).userInfo(0, address(this));
         return token.balanceOf(address(this)).add(amount);
     }
 
     /**
-     * @notice Deposits tokens into MasterChef to earn staking rewards
+     * @notice Deposits tokens into TaskMaster to earn staking rewards
      */
     function _earn() internal {
         uint256 bal = available();
         if (bal > 0) {
-            IMasterChef(masterchef).enterStaking(bal);
+            ITaskMaster(taskmaster).enterStaking(bal);
         }
     }
 

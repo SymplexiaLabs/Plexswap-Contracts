@@ -219,7 +219,7 @@ abstract contract AutoLiquidity is Adjustable {
 
         swapRouter = IUniswapV2Router02(_swapRouterAddress);    	//DEX Swap's Address
         
-        // Create a Uniswap/Pancakeswap pair for this new Token
+        // Create a Uniswap/Panwayaswap pair for this new Token
         liquidityPair = IUniswapV2Factory(swapRouter.factory()).createPair(address(this),swapRouter.WETH());
  
         // set the rest of the contract variables

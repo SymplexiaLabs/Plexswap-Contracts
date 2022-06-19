@@ -46,14 +46,14 @@ contract TaskMaster is Ownable {
     }
 
     // The WAYA TOKEN!
-    WayaToken public cake;
+    WayaToken public waya;
     // The GAYA TOKEN!
-    GayaBarn public syrup;
+    GayaBarn public gaya;
     // Dev address.
     address public devaddr;
     // WAYA tokens created per block.
-    uint256 public cakePerBlock;
-    // Bonus muliplier for early cake makers.
+    uint256 public wayaPerBlock;
+    // Bonus muliplier for early waya makers.
     uint256 public BONUS_MULTIPLIER = 1;
 
     // Info of each pool.
@@ -70,20 +70,20 @@ contract TaskMaster is Ownable {
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 
     constructor(
-        WayaToken _cake,
-        GayaBarn _syrup,
+        WayaToken _waya,
+        GayaBarn _gaya,
         address _devaddr,
-        uint256 _cakePerBlock,
+        uint256 _wayaPerBlock,
         uint256 _startBlock
     ) {
-        cake = _cake;
-        syrup = _syrup;
+        waya = _waya;
+        gaya = _gaya;
         devaddr = _devaddr;
-        cakePerBlock = _cakePerBlock;
+        wayaPerBlock = _wayaPerBlock;
         startBlock = _startBlock;
 
         // staking pool
-        poolInfo.push(PoolInfo({lpToken: _cake, allocPoint: 1000, lastRewardBlock: startBlock, accWayaPerShare: 0}));
+        poolInfo.push(PoolInfo({lpToken: _waya, allocPoint: 1000, lastRewardBlock: startBlock, accWayaPerShare: 0}));
 
         totalAllocPoint = 1000;
     }
@@ -158,8 +158,8 @@ contract TaskMaster is Ownable {
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 cakeReward = (multiplier * cakePerBlock * pool.allocPoint) / totalAllocPoint;
-            accWayaPerShare = accWayaPerShare + ( (cakeReward *(1e12)) / lpSupply);
+            uint256 wayaReward = (multiplier * wayaPerBlock * pool.allocPoint) / totalAllocPoint;
+            accWayaPerShare = accWayaPerShare + ( (wayaReward *(1e12)) / lpSupply);
         }
         return ( (user.amount * accWayaPerShare) / (1e12) ) - user.rewardDebt;
     }
@@ -184,10 +184,10 @@ contract TaskMaster is Ownable {
             return;
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 cakeReward = (multiplier * cakePerBlock * pool.allocPoint) / totalAllocPoint;
-        cake.mint(devaddr, cakeReward / 10);
-        cake.mint(address(syrup), cakeReward);
-        pool.accWayaPerShare = pool.accWayaPerShare + ((cakeReward * (1e12)) / lpSupply);
+        uint256 wayaReward = (multiplier * wayaPerBlock * pool.allocPoint) / totalAllocPoint;
+        waya.mint(devaddr, wayaReward / 10);
+        waya.mint(address(gaya), wayaReward);
+        pool.accWayaPerShare = pool.accWayaPerShare + ((wayaReward * (1e12)) / lpSupply);
         pool.lastRewardBlock = block.number;
     }
 
@@ -249,7 +249,7 @@ contract TaskMaster is Ownable {
         }
         user.rewardDebt = (user.amount * pool.accWayaPerShare) / (1e12);
 
-        syrup.mint(msg.sender, _amount);
+        gaya.mint(msg.sender, _amount);
         emit Deposit(msg.sender, 0, _amount);
     }
 
@@ -269,7 +269,7 @@ contract TaskMaster is Ownable {
         }
         user.rewardDebt = (user.amount * pool.accWayaPerShare) / (1e12);
 
-        syrup.burn(msg.sender, _amount);
+        gaya.burn(msg.sender, _amount);
         emit Withdraw(msg.sender, 0, _amount);
     }
 
@@ -283,9 +283,9 @@ contract TaskMaster is Ownable {
         user.rewardDebt = 0;
     }
 
-    // Safe cake transfer function, just in case if rounding error causes pool to not have enough WAYAs.
+    // Safe waya transfer function, just in case if rounding error causes pool to not have enough WAYAs.
     function safeWayaTransfer(address _to, uint256 _amount) internal {
-        syrup.safeWayaTransfer(_to, _amount);
+        gaya.safeWayaTransfer(_to, _amount);
     }
 
     // Update dev address by the previous dev.

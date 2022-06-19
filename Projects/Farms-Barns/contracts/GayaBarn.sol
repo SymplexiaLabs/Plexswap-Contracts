@@ -19,19 +19,19 @@ contract GayaBarn is ERC20("GayaBarn Token", "GAYA"), Ownable {
     }
 
     // The WAYA TOKEN!
-    WayaToken public cake;
+    WayaToken public waya;
 
-    constructor(WayaToken _cake) {
-        cake = _cake;
+    constructor(WayaToken _waya) {
+        waya = _waya;
     }
 
-    // Safe cake transfer function, just in case if rounding error causes pool to not have enough WAYAs.
+    // Safe waya transfer function, just in case if rounding error causes pool to not have enough WAYAs.
     function safeWayaTransfer(address _to, uint256 _amount) public onlyOwner {
-        uint256 cakeBal = cake.balanceOf(address(this));
-        if (_amount > cakeBal) {
-            cake.transfer(_to, cakeBal);
+        uint256 wayaBal = waya.balanceOf(address(this));
+        if (_amount > wayaBal) {
+            waya.transfer(_to, wayaBal);
         } else {
-            cake.transfer(_to, _amount);
+            waya.transfer(_to, _amount);
         }
     }
 

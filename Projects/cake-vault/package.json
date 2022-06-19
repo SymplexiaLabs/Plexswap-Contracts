@@ -1,6 +1,6 @@
 {
-  "name": "pancake-cake-vault",
-  "description": "An auto-compounding system for CAKE tokens",
+  "name": "panwaya-waya-vault",
+  "description": "An auto-compounding system for WAYA tokens",
   "main": "index.js",
   "version": "1.0.0",
   "license": "MIT",

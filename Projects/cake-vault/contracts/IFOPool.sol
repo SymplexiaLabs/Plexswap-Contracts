@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
-import "./interfaces/IMasterChef.sol";
+import "./interfaces/ITaskMaster.sol";
 
 contract IFOPool is Ownable, Pausable {
     using SafeERC20 for IERC20;
@@ -14,14 +14,14 @@ contract IFOPool is Ownable, Pausable {
     struct UserInfo {
         uint256 shares; // number of shares for a user
         uint256 lastDepositedTime; // keeps track of deposited time for potential penalty
-        uint256 cakeAtLastUserAction; // keeps track of cake deposited at the last user action
+        uint256 wayaAtLastUserAction; // keeps track of waya deposited at the last user action
         uint256 lastUserActionTime; // keeps track of the last user action time
     }
     //IFO
     struct UserIFOInfo {
         // ifo valid period is current block between startblock and endblock
-        uint256 lastActionBalance; // staked cake numbers (not include compoud cake) at last action
-        uint256 lastValidActionBalance; // staked cake numbers in ifo valid period
+        uint256 lastActionBalance; // staked waya numbers (not include compoud waya) at last action
+        uint256 lastValidActionBalance; // staked waya numbers in ifo valid period
         uint256 lastActionBlock; //  last action block number
         uint256 lastValidActionBlock; // last action block number in ifo valid period
         uint256 lastAvgBalance; // average balance in ifo valid period
@@ -32,10 +32,10 @@ contract IFOPool is Ownable, Pausable {
         Withdraw
     }
 
-    IERC20 public immutable token; // Cake token
-    IERC20 public immutable receiptToken; // Syrup token
+    IERC20 public immutable token; // Waya token
+    IERC20 public immutable receiptToken; // Gaya token
 
-    IMasterChef public immutable masterchef;
+    ITaskMaster public immutable taskmaster;
 
     mapping(address => UserInfo) public userInfo;
     //IFO
@@ -78,9 +78,9 @@ contract IFOPool is Ownable, Pausable {
 
     /**
      * @notice Constructor
-     * @param _token: Cake token contract
-     * @param _receiptToken: Syrup token contract
-     * @param _masterchef: MasterChef contract
+     * @param _token: Waya token contract
+     * @param _receiptToken: Gaya token contract
+     * @param _taskmaster: TaskMaster contract
      * @param _admin: address of the admin
      * @param _treasury: address of the treasury (collects fees)
      * @param _startBlock: IFO start block height
@@ -89,7 +89,7 @@ contract IFOPool is Ownable, Pausable {
     constructor(
         IERC20 _token,
         IERC20 _receiptToken,
-        IMasterChef _masterchef,
+        ITaskMaster _taskmaster,
         address _admin,
         address _treasury,
         uint256 _startBlock,
@@ -100,14 +100,14 @@ contract IFOPool is Ownable, Pausable {
 
         token = _token;
         receiptToken = _receiptToken;
-        masterchef = _masterchef;
+        taskmaster = _taskmaster;
         admin = _admin;
         treasury = _treasury;
         startBlock = _startBlock;
         endBlock = _endBlock;
 
         // Infinite approve
-        IERC20(_token).safeApprove(address(_masterchef), uint256(-1));
+        IERC20(_token).safeApprove(address(_taskmaster), uint256(-1));
     }
 
     /**
@@ -128,9 +128,9 @@ contract IFOPool is Ownable, Pausable {
     }
 
     /**
-     * @notice Deposits funds into the Cake Vault
+     * @notice Deposits funds into the Waya Vault
      * @dev Only possible when contract not paused.
-     * @param _amount: number of tokens to deposit (in CAKE)
+     * @param _amount: number of tokens to deposit (in WAYA)
      */
     function deposit(uint256 _amount) external whenNotPaused notContract {
         require(_amount > 0, "Nothing to deposit");
@@ -152,7 +152,7 @@ contract IFOPool is Ownable, Pausable {
 
         totalShares = totalShares.add(currentShares);
 
-        user.cakeAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
+        user.wayaAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
         user.lastUserActionTime = block.timestamp;
         //IFO
         _updateUserIFO(_amount, IFOActions.Deposit);
@@ -186,7 +186,7 @@ contract IFOPool is Ownable, Pausable {
      * @param _lastActionBlock: last action(deposit/withdraw) block number.
      * @param _lastValidActionBlock: last valid action(deposit/withdraw) block number.
      * @param _lastActionBalance: last valid action(deposit/withdraw) block number.
-     * @param _lastValidActionBalance: staked cake number at last action.
+     * @param _lastValidActionBalance: staked waya number at last action.
      * @param _lastAvgBalance: last average balance.
      */
     function _calculateAvgBalance(
@@ -220,7 +220,7 @@ contract IFOPool is Ownable, Pausable {
 
     /**
      * @notice update userIFOInfo
-     * @param _amount:the cake amount that need be add or sub
+     * @param _amount:the waya amount that need be add or sub
      * @param _action:IFOActions enum element
      */
     function _updateUserIFO(uint256 _amount, IFOActions _action) internal {
@@ -328,7 +328,7 @@ contract IFOPool is Ownable, Pausable {
         uint256 bal = available();
         if (bal < currentAmount) {
             uint256 balWithdraw = currentAmount.sub(bal);
-            IMasterChef(masterchef).leaveStaking(balWithdraw);
+            ITaskMaster(taskmaster).leaveStaking(balWithdraw);
             uint256 balAfter = available();
             uint256 diff = balAfter.sub(bal);
             if (diff < balWithdraw) {
@@ -343,9 +343,9 @@ contract IFOPool is Ownable, Pausable {
         }
 
         if (user.shares > 0) {
-            user.cakeAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
+            user.wayaAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
         } else {
-            user.cakeAtLastUserAction = 0;
+            user.wayaAtLastUserAction = 0;
         }
 
         user.lastUserActionTime = block.timestamp;
@@ -359,7 +359,7 @@ contract IFOPool is Ownable, Pausable {
     }
 
     /**
-     * @notice original Withdraws implementation from funds, the logic same as Cake Vault withdraw
+     * @notice original Withdraws implementation from funds, the logic same as Waya Vault withdraw
      * @notice this function visibility change to internal, call only be called by 'emergencyWithdrawAll' function
      * @param _shares: Number of shares to withdraw
      */
@@ -375,7 +375,7 @@ contract IFOPool is Ownable, Pausable {
         uint256 bal = available();
         if (bal < currentAmount) {
             uint256 balWithdraw = currentAmount.sub(bal);
-            IMasterChef(masterchef).leaveStaking(balWithdraw);
+            ITaskMaster(taskmaster).leaveStaking(balWithdraw);
             uint256 balAfter = available();
             uint256 diff = balAfter.sub(bal);
             if (diff < balWithdraw) {
@@ -390,9 +390,9 @@ contract IFOPool is Ownable, Pausable {
         }
 
         if (user.shares > 0) {
-            user.cakeAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
+            user.wayaAtLastUserAction = user.shares.mul(balanceOf()).div(totalShares);
         } else {
-            user.cakeAtLastUserAction = 0;
+            user.wayaAtLastUserAction = 0;
         }
 
         user.lastUserActionTime = block.timestamp;
@@ -403,12 +403,12 @@ contract IFOPool is Ownable, Pausable {
     }
 
     /**
-     * @notice Reinvests CAKE tokens into MasterChef
+     * @notice Reinvests WAYA tokens into TaskMaster
      * @dev Only possible when contract not paused.
      */
     function harvest() external notContract whenNotPaused {
         uint256 beforeBal = available();
-        IMasterChef(masterchef).leaveStaking(0);
+        ITaskMaster(taskmaster).leaveStaking(0);
         uint256 bal = available().sub(beforeBal);
 
         uint256 currentPerformanceFee = bal.mul(performanceFee).div(10000);
@@ -512,18 +512,18 @@ contract IFOPool is Ownable, Pausable {
     }
 
     /**
-     * @notice Withdraws from MasterChef to Vault without caring about rewards.
+     * @notice Withdraws from TaskMaster to Vault without caring about rewards.
      * @dev EMERGENCY ONLY. Only callable by the contract admin.
      */
     function emergencyWithdraw() external onlyAdmin {
-        IMasterChef(masterchef).emergencyWithdraw(0);
+        ITaskMaster(taskmaster).emergencyWithdraw(0);
         if (!paused()) {
             _pause();
         }
     }
 
     /**
-     * @notice Withdraw unexpected tokens sent to the Cake Vault
+     * @notice Withdraw unexpected tokens sent to the Waya Vault
      */
     function inCaseTokensGetStuck(address _token) external onlyAdmin {
         require(_token != address(token), "Token cannot be same as deposit token");
@@ -553,10 +553,10 @@ contract IFOPool is Ownable, Pausable {
 
     /**
      * @notice Calculates the expected harvest reward from third party
-     * @return Expected reward to collect in CAKE
+     * @return Expected reward to collect in WAYA
      */
-    function calculateHarvestCakeRewards() external view returns (uint256) {
-        uint256 amount = IMasterChef(masterchef).pendingCake(0, address(this));
+    function calculateHarvestWayaRewards() external view returns (uint256) {
+        uint256 amount = ITaskMaster(taskmaster).pendingWaya(0, address(this));
         uint256 currentCallFee = amount.mul(callFee).div(10000);
 
         return currentCallFee;
@@ -564,10 +564,10 @@ contract IFOPool is Ownable, Pausable {
 
     /**
      * @notice Calculates the total pending rewards that can be restaked
-     * @return Returns total pending cake rewards
+     * @return Returns total pending waya rewards
      */
-    function calculateTotalPendingCakeRewards() external view returns (uint256) {
-        uint256 amount = IMasterChef(masterchef).pendingCake(0, address(this));
+    function calculateTotalPendingWayaRewards() external view returns (uint256) {
+        uint256 amount = ITaskMaster(taskmaster).pendingWaya(0, address(this));
         amount = amount.add(available());
 
         return amount;
@@ -590,20 +590,20 @@ contract IFOPool is Ownable, Pausable {
 
     /**
      * @notice Calculates the total underlying tokens
-     * @dev It includes tokens held by the contract and held in MasterChef
+     * @dev It includes tokens held by the contract and held in TaskMaster
      */
     function balanceOf() public view returns (uint256) {
-        (uint256 amount, ) = IMasterChef(masterchef).userInfo(0, address(this));
+        (uint256 amount, ) = ITaskMaster(taskmaster).userInfo(0, address(this));
         return token.balanceOf(address(this)).add(amount);
     }
 
     /**
-     * @notice Deposits tokens into MasterChef to earn staking rewards
+     * @notice Deposits tokens into TaskMaster to earn staking rewards
      */
     function _earn() internal {
         uint256 bal = available();
         if (bal > 0) {
-            IMasterChef(masterchef).enterStaking(bal);
+            ITaskMaster(taskmaster).enterStaking(bal);
         }
     }
 

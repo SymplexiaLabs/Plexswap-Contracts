@@ -3,12 +3,12 @@
     "inputs": [
       {
         "internalType": "contract WayaToken",
-        "name": "_cake",
+        "name": "_waya",
         "type": "address"
       },
       {
         "internalType": "contract GayaBarn",
-        "name": "_syrup",
+        "name": "_gaya",
         "type": "address"
       },
       {
@@ -18,7 +18,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "_cakePerBlock",
+        "name": "_wayaPerBlock",
         "type": "uint256"
       },
       {
@@ -162,7 +162,7 @@
   },
   {
     "inputs": [],
-    "name": "cake",
+    "name": "waya",
     "outputs": [
       {
         "internalType": "contract WayaToken",
@@ -175,7 +175,7 @@
   },
   {
     "inputs": [],
-    "name": "cakePerBlock",
+    "name": "wayaPerBlock",
     "outputs": [
       {
         "internalType": "uint256",
@@ -429,7 +429,7 @@
   },
   {
     "inputs": [],
-    "name": "syrup",
+    "name": "gaya",
     "outputs": [
       {
         "internalType": "contract GayaBarn",

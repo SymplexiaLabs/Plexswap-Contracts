@@ -3,7 +3,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_cakeVaultAddress",
+        "name": "_wayaVaultAddress",
         "type": "address"
       }
     ],
@@ -31,10 +31,10 @@
   },
   {
     "inputs": [],
-    "name": "cakeVault",
+    "name": "wayaVault",
     "outputs": [
       {
-        "internalType": "contract CakeVault",
+        "internalType": "contract WayaVault",
         "name": "",
         "type": "address"
       }

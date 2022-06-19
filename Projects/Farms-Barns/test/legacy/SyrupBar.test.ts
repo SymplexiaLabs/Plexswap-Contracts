@@ -6,36 +6,36 @@ const WayaToken = artifacts.require("WayaToken");
 const GayaBarn = artifacts.require("GayaBarn");
 
 contract("GayaBarn", ([alice, bob, minter]) => {
-  let cake, syrup;
+  let waya, gaya;
 
   beforeEach(async () => {
-    cake = await WayaToken.new({ from: minter });
-    syrup = await GayaBarn.new(cake.address, { from: minter });
+    waya = await WayaToken.new({ from: minter });
+    gaya = await GayaBarn.new(waya.address, { from: minter });
   });
 
   it("mint", async () => {
-    await syrup.mint(alice, 1000, { from: minter });
-    assert.equal((await syrup.balanceOf(alice)).toString(), "1000");
+    await gaya.mint(alice, 1000, { from: minter });
+    assert.equal((await gaya.balanceOf(alice)).toString(), "1000");
   });
 
   it("burn", async () => {
     await time.advanceBlockTo("650");
-    await syrup.mint(alice, 1000, { from: minter });
-    await syrup.mint(bob, 1000, { from: minter });
-    assert.equal((await syrup.totalSupply()).toString(), "2000");
-    await syrup.burn(alice, 200, { from: minter });
+    await gaya.mint(alice, 1000, { from: minter });
+    await gaya.mint(bob, 1000, { from: minter });
+    assert.equal((await gaya.totalSupply()).toString(), "2000");
+    await gaya.burn(alice, 200, { from: minter });
 
-    assert.equal((await syrup.balanceOf(alice)).toString(), "800");
-    assert.equal((await syrup.totalSupply()).toString(), "1800");
+    assert.equal((await gaya.balanceOf(alice)).toString(), "800");
+    assert.equal((await gaya.totalSupply()).toString(), "1800");
   });
 
   it("safeWayaTransfer", async () => {
-    assert.equal((await cake.balanceOf(syrup.address)).toString(), "0");
-    await cake.mint(syrup.address, 1000, { from: minter });
-    await syrup.safeWayaTransfer(bob, 200, { from: minter });
-    assert.equal((await cake.balanceOf(bob)).toString(), "200");
-    assert.equal((await cake.balanceOf(syrup.address)).toString(), "800");
-    await syrup.safeWayaTransfer(bob, 2000, { from: minter });
-    assert.equal((await cake.balanceOf(bob)).toString(), "1000");
+    assert.equal((await waya.balanceOf(gaya.address)).toString(), "0");
+    await waya.mint(gaya.address, 1000, { from: minter });
+    await gaya.safeWayaTransfer(bob, 200, { from: minter });
+    assert.equal((await waya.balanceOf(bob)).toString(), "200");
+    assert.equal((await waya.balanceOf(gaya.address)).toString(), "800");
+    await gaya.safeWayaTransfer(bob, 2000, { from: minter });
+    assert.equal((await waya.balanceOf(bob)).toString(), "1000");
   });
 });

@@ -23,7 +23,7 @@
         "type": "bytes"
       }
     ],
-    "name": "pancakeCall",
+    "name": "panwayaCall",
     "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",

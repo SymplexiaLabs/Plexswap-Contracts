@@ -260,9 +260,9 @@ contract TaskAuxiliar is Ownable, ReentrancyGuard {
         uint256 stakedTokenSupply = stakedToken.balanceOf(address(this));
         if (block.number > lastRewardBlock && stakedTokenSupply != 0) {
             uint256 multiplier = _getMultiplier(lastRewardBlock, block.number);
-            uint256 cakeReward = multiplier * rewardPerBlock;
+            uint256 wayaReward = multiplier * rewardPerBlock;
             uint256 adjustedTokenPerShare = accTokenPerShare + (
-                (cakeReward * PRECISION_FACTOR) / stakedTokenSupply
+                (wayaReward * PRECISION_FACTOR) / stakedTokenSupply
             );
             return ((user.amount * adjustedTokenPerShare) / PRECISION_FACTOR) - user.rewardDebt;
         } else {
@@ -286,8 +286,8 @@ contract TaskAuxiliar is Ownable, ReentrancyGuard {
         }
 
         uint256 multiplier = _getMultiplier(lastRewardBlock, block.number);
-        uint256 cakeReward = multiplier * rewardPerBlock;
-        accTokenPerShare = accTokenPerShare + ((cakeReward * PRECISION_FACTOR) / stakedTokenSupply);
+        uint256 wayaReward = multiplier * rewardPerBlock;
+        accTokenPerShare = accTokenPerShare + ((wayaReward * PRECISION_FACTOR) / stakedTokenSupply);
         lastRewardBlock = block.number;
     }
 

@@ -13,8 +13,8 @@ const main = async () => {
     }
   }
 
-  if (!config.CakeVault[name] || config.CakeVault[name] === constants.ZERO_ADDRESS) {
-    throw new Error("Missing cake address, refer to README 'Deployment' section");
+  if (!config.WayaVault[name] || config.WayaVault[name] === constants.ZERO_ADDRESS) {
+    throw new Error("Missing waya address, refer to README 'Deployment' section");
   }
 
   console.log("Deploying to network:", network);
@@ -22,7 +22,7 @@ const main = async () => {
   console.log("Deploying Vault Owner..");
 
   const VaultOwner = await ethers.getContractFactory("VaultOwner");
-  const vaultOwner = await VaultOwner.deploy(config.CakeVault[name]);
+  const vaultOwner = await VaultOwner.deploy(config.WayaVault[name]);
 
   await vaultOwner.deployed();
 

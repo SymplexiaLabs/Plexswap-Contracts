@@ -2,10 +2,10 @@ import { artifacts, contract, ethers, network } from "hardhat";
 import { ether, time, constants, BN, expectRevert, expectEvent } from "@openzeppelin/test-helpers";
 import { assert, expect } from "chai";
 
-const CakeToken = artifacts.require("CakeToken");
-const SyrupBar = artifacts.require("SyrupBar");
-const MasterChef = artifacts.require("MasterChef");
-const CakeVault = artifacts.require("IFOPool");
+const WayaToken = artifacts.require("WayaToken");
+const GayaBarn = artifacts.require("GayaBarn");
+const TaskMaster = artifacts.require("TaskMaster");
+const WayaVault = artifacts.require("IFOPool");
 // const VaultOwner = artifacts.require("VaultOwner");
 const MockERC20 = artifacts.require("MockERC20");
 const snapshot = require("@openzeppelin/test-helpers/src/snapshot");
@@ -13,7 +13,7 @@ const snapshot = require("@openzeppelin/test-helpers/src/snapshot");
 const REWARDS_START_BLOCK = 100;
 
 contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) => {
-  let vault, masterchef, cake, syrup, rewardsStartBlock;
+  let vault, taskmaster, waya, gaya, rewardsStartBlock;
   let user1Shares, user2Shares, user3Shares;
   let pricePerFullShare;
 
@@ -29,7 +29,7 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
     return {
       shares: userInfo[0],
       lastDepositedTime: userInfo[1],
-      cakeAtLastUserAction: userInfo[2],
+      wayaAtLastUserAction: userInfo[2],
       lastUserActionTime: userInfo[3],
     };
   }
@@ -47,32 +47,32 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
     rewardsStartBlock = (await time.latestBlock()).toNumber() + REWARDS_START_BLOCK;
 
     // console.log(rewardsStartBlock);
-    cake = await CakeToken.new({ from: owner });
-    syrup = await SyrupBar.new(cake.address, { from: owner });
-    masterchef = await MasterChef.new(cake.address, syrup.address, owner, ether("1"), rewardsStartBlock, {
+    waya = await WayaToken.new({ from: owner });
+    gaya = await GayaBarn.new(waya.address, { from: owner });
+    taskmaster = await TaskMaster.new(waya.address, gaya.address, owner, ether("1"), rewardsStartBlock, {
       from: owner,
-    }); // 1 cake per block, starts at +100 block of each test
-    vault = await CakeVault.new(cake.address, syrup.address, masterchef.address, admin, treasury, 1001, 1020, {
+    }); // 1 waya per block, starts at +100 block of each test
+    vault = await WayaVault.new(waya.address, gaya.address, taskmaster.address, admin, treasury, 1001, 1020, {
       from: owner,
     });
 
-    await cake.mint(user1, ether("1000"), { from: owner });
-    await cake.mint(user2, ether("1000"), { from: owner });
-    await cake.mint(user3, ether("1000"), { from: owner });
-    await cake.approve(vault.address, ether("100000"), { from: user1 });
-    await cake.approve(vault.address, ether("1000"), { from: user2 });
-    await cake.approve(vault.address, ether("1000"), { from: user3 });
-    await cake.transferOwnership(masterchef.address, { from: owner });
-    await syrup.transferOwnership(masterchef.address, { from: owner });
+    await waya.mint(user1, ether("1000"), { from: owner });
+    await waya.mint(user2, ether("1000"), { from: owner });
+    await waya.mint(user3, ether("1000"), { from: owner });
+    await waya.approve(vault.address, ether("100000"), { from: user1 });
+    await waya.approve(vault.address, ether("1000"), { from: user2 });
+    await waya.approve(vault.address, ether("1000"), { from: user3 });
+    await waya.transferOwnership(taskmaster.address, { from: owner });
+    await gaya.transferOwnership(taskmaster.address, { from: owner });
   });
 
   it("Initialize", async () => {
     const snapshotA = await snapshot();
 
-    assert.equal(await cake.balanceOf(vault.address), 0);
-    assert.equal(await cake.balanceOf(vault.address), 0);
-    assert.equal(await vault.token(), cake.address);
-    assert.equal(await vault.masterchef(), masterchef.address);
+    assert.equal(await waya.balanceOf(vault.address), 0);
+    assert.equal(await waya.balanceOf(vault.address), 0);
+    assert.equal(await vault.token(), waya.address);
+    assert.equal(await vault.taskmaster(), taskmaster.address);
     assert.equal(await vault.owner(), owner);
     assert.equal(await vault.admin(), admin);
     assert.equal(await vault.treasury(), treasury);
@@ -88,14 +88,14 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
     await snapshotA.restore();
   });
 
-  it("Should deposit 10,20,40 cakes at block 2 8 14 and final with credit around 34.73 as case 1", async () => {
+  it("Should deposit 10,20,40 wayas at block 2 8 14 and final with credit around 34.73 as case 1", async () => {
     const snapshotA = await snapshot();
     try {
       await vault.setPerformanceFee(200, { from: admin });
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(1001);
       await vault.deposit(ether("10"), { from: user1 });
@@ -113,14 +113,14 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
     }
   });
 
-  it("Should deposit 200 cakes at block 17 and final with credit around 31.57 as case 2", async () => {
+  it("Should deposit 200 wayas at block 17 and final with credit around 31.57 as case 2", async () => {
     const snapshotA = await snapshot();
     try {
       await vault.setPerformanceFee(200, { from: admin });
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(1016);
       await vault.deposit(ether("200"), { from: user1 });
@@ -139,7 +139,7 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(1002);
       await vault.deposit(ether("100"), { from: user1 });
@@ -154,14 +154,14 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
     }
   });
 
-  it("Should deposit 50 cake at block 2 and final with credit around 47.36 as case 4", async () => {
+  it("Should deposit 50 waya at block 2 and final with credit around 47.36 as case 4", async () => {
     const snapshotA = await snapshot();
     try {
       await vault.setPerformanceFee(200, { from: admin });
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(1001);
       await vault.deposit(ether("50"), { from: user1 });
@@ -180,7 +180,7 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(999);
       await vault.deposit(ether("40"), { from: user1 });
@@ -205,7 +205,7 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(1001);
       await vault.deposit(ether("10"), { from: user1 });
@@ -231,7 +231,7 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(1020);
       expect(await getUserCredit(user1)).to.equal(parseFloat("0"));
@@ -253,7 +253,7 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(999);
       await vault.deposit(ether("40"), { from: user1 });
@@ -275,7 +275,7 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(999);
       await vault.deposit(ether("40"), { from: user1 });
@@ -303,7 +303,7 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(1001);
       await vault.deposit(ether("10"), { from: user1 });
@@ -329,8 +329,8 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
-      assert.equal((await cake.balanceOf(user2)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user2)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(1001);
       await vault.deposit(ether("10"), { from: user1 });
@@ -359,14 +359,14 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
     }
   });
 
-  it("Should deposit 10,20,40 cakes at block 2 8 14 and final with credit around 34.73 as case 1 with updateEndBlock", async () => {
+  it("Should deposit 10,20,40 wayas at block 2 8 14 and final with credit around 34.73 as case 1 with updateEndBlock", async () => {
     const snapshotA = await snapshot();
     try {
       await vault.setPerformanceFee(200, { from: admin });
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(1001);
       await vault.deposit(ether("10"), { from: user1 });
@@ -401,7 +401,7 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(990);
       await vault.deposit(ether("10"), { from: user1 });
@@ -421,14 +421,14 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
     }
   });
 
-  it("Should deposit a small num of cake and share not equal to 0", async () => {
+  it("Should deposit a small num of waya and share not equal to 0", async () => {
     const snapshotA = await snapshot();
     try {
       await vault.setPerformanceFee(200, { from: admin });
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(990);
       await vault.deposit(ether("100"), { from: user2 });
@@ -471,7 +471,7 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(990);
       await vault.deposit(ether("100"), { from: user2 });
@@ -490,14 +490,14 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
     }
   });
 
-  it("Should deposit 10,20,40 cakes at block 2 8 14 and final with credit around 34.73 as case 1 with multiple updateEndBlock", async () => {
+  it("Should deposit 10,20,40 wayas at block 2 8 14 and final with credit around 34.73 as case 1 with multiple updateEndBlock", async () => {
     const snapshotA = await snapshot();
     try {
       await vault.setPerformanceFee(200, { from: admin });
       await vault.setCallFee(20, { from: admin });
       await vault.setWithdrawFee(80, { from: admin });
 
-      assert.equal((await cake.balanceOf(user1)).toString(), ether("1000").toString());
+      assert.equal((await waya.balanceOf(user1)).toString(), ether("1000").toString());
 
       await time.advanceBlockTo(1001);
       await vault.deposit(ether("10"), { from: user1 });
@@ -531,34 +531,34 @@ contract("IFOPool", ([owner, admin, treasury, user1, user2, user3, harvester]) =
       console.log(ethers.utils.formatEther((await vault.userIFOInfo(user1))["lastAvgBalance"].toString()));
 
       console.log(
-        "cake of masterchef : %s ",
-        ethers.utils.formatEther((await cake.balanceOf(masterchef.address)).toString())
+        "waya of taskmaster : %s ",
+        ethers.utils.formatEther((await waya.balanceOf(taskmaster.address)).toString())
       );
       await vault.deposit(ether("500"), { from: user1 });
       console.log(
-        "cake of masterchef : %s ",
-        ethers.utils.formatEther((await cake.balanceOf(masterchef.address)).toString())
+        "waya of taskmaster : %s ",
+        ethers.utils.formatEther((await waya.balanceOf(taskmaster.address)).toString())
       );
-      console.log("cake of user1 : %s ", ethers.utils.formatEther((await cake.balanceOf(user1)).toString()));
+      console.log("waya of user1 : %s ", ethers.utils.formatEther((await waya.balanceOf(user1)).toString()));
 
       let user1Shares = ethers.utils.formatEther((await getUserInfo(user1)).shares.toString());
       console.log("shares : %s ", user1Shares);
 
       console.log(
-        "cake of masterchef : %s ",
-        ethers.utils.formatEther((await cake.balanceOf(masterchef.address)).toString())
+        "waya of taskmaster : %s ",
+        ethers.utils.formatEther((await waya.balanceOf(taskmaster.address)).toString())
       );
       await vault.harvest({ from: user1 });
       console.log(
-        "cake of masterchef : %s ",
-        ethers.utils.formatEther((await cake.balanceOf(masterchef.address)).toString())
+        "waya of taskmaster : %s ",
+        ethers.utils.formatEther((await waya.balanceOf(taskmaster.address)).toString())
       );
 
       user1Shares = ethers.utils.formatEther((await getUserInfo(user1)).shares.toString());
       console.log("shares : %s ", user1Shares);
 
       await vault.withdraw(ether("400.512195121951219509"), { from: user1 });
-      console.log("cake of user1 : %s ", ethers.utils.formatEther((await cake.balanceOf(user1)).toString()));
+      console.log("waya of user1 : %s ", ethers.utils.formatEther((await waya.balanceOf(user1)).toString()));
 
       await time.advanceBlockTo(1020);
       expect(await getUserCredit(user1)).to.be.within(0, 0.01);

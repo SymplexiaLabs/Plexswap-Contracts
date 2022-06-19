@@ -16,32 +16,32 @@ const main = async () => {
     if (!config.Treasury[name] || config.Treasury[name] === constants.ZERO_ADDRESS) {
       throw new Error("Missing treasury address, refer to README 'Deployment' section");
     }
-    if (!config.Syrup[name] || config.Syrup[name] === constants.ZERO_ADDRESS) {
-      throw new Error("Missing syrup address, refer to README 'Deployment' section");
+    if (!config.Gaya[name] || config.Gaya[name] === constants.ZERO_ADDRESS) {
+      throw new Error("Missing gaya address, refer to README 'Deployment' section");
     }
-    if (!config.Cake[name] || config.Cake[name] === constants.ZERO_ADDRESS) {
-      throw new Error("Missing syrup address, refer to README 'Deployment' section");
+    if (!config.Waya[name] || config.Waya[name] === constants.ZERO_ADDRESS) {
+      throw new Error("Missing gaya address, refer to README 'Deployment' section");
     }
-    if (!config.MasterChef[name] || config.MasterChef[name] === constants.ZERO_ADDRESS) {
+    if (!config.TaskMaster[name] || config.TaskMaster[name] === constants.ZERO_ADDRESS) {
       throw new Error("Missing master address, refer to README 'Deployment' section");
     }
   }
 
   console.log("Deploying to network:", network);
 
-  let cake, syrup, masterchef, admin, treasury;
+  let waya, gaya, taskmaster, admin, treasury;
 
   if (name == "mainnet") {
     admin = config.Admin[name];
     treasury = config.Treasury[name];
-    cake = config.Cake[name];
-    syrup = config.Syrup[name];
-    masterchef = config.MasterChef[name];
+    waya = config.Waya[name];
+    gaya = config.Gaya[name];
+    taskmaster = config.TaskMaster[name];
   } else {
     console.log("Deploying mocks");
-    const CakeContract = await ethers.getContractFactory("CakeToken");
-    const SyrupContract = await ethers.getContractFactory("SyrupBar");
-    const MasterChefContract = await ethers.getContractFactory("MasterChef");
+    const WayaContract = await ethers.getContractFactory("WayaToken");
+    const GayaContract = await ethers.getContractFactory("GayaBarn");
+    const TaskMasterContract = await ethers.getContractFactory("TaskMaster");
     const currentBlock = await ethers.provider.getBlockNumber();
 
     if (name === "hardhat") {
@@ -53,29 +53,29 @@ const main = async () => {
       treasury = config.Treasury[name];
     }
 
-    cake = (await CakeContract.deploy()).address;
-    await cake.deployed();
-    syrup = (await SyrupContract.deploy(cake)).address;
-    await syrup.deployed();
-    masterchef = (await MasterChefContract.deploy(cake, syrup, admin, ethers.BigNumber.from("1"), currentBlock))
+    waya = (await WayaContract.deploy()).address;
+    await waya.deployed();
+    gaya = (await GayaContract.deploy(waya)).address;
+    await gaya.deployed();
+    taskmaster = (await TaskMasterContract.deploy(waya, gaya, admin, ethers.BigNumber.from("1"), currentBlock))
       .address;
 
-    await masterchef.deployed();
+    await taskmaster.deployed();
 
     console.log("Admin:", admin);
     console.log("Treasury:", treasury);
-    console.log("Cake deployed to:", cake);
-    console.log("Syrup deployed to:", syrup);
-    console.log("MasterChef deployed to:", masterchef);
+    console.log("Waya deployed to:", waya);
+    console.log("Gaya deployed to:", gaya);
+    console.log("TaskMaster deployed to:", taskmaster);
   }
 
-  console.log("Deploying Cake Vault...");
+  console.log("Deploying Waya Vault...");
 
-  const CakeVaultContract = await ethers.getContractFactory("CakeVault");
-  const cakeVault = await CakeVaultContract.deploy(cake, syrup, masterchef, admin, treasury);
-  await cakeVault.deployed();
+  const WayaVaultContract = await ethers.getContractFactory("WayaVault");
+  const wayaVault = await WayaVaultContract.deploy(waya, gaya, taskmaster, admin, treasury);
+  await wayaVault.deployed();
 
-  console.log("CakeVault deployed to:", cakeVault.address);
+  console.log("WayaVault deployed to:", wayaVault.address);
 };
 
 main()
