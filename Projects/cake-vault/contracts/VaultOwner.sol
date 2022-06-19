@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity ^0.8.11;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "./Ownable.sol";
+import "./SafeERC20.sol";
 import "./WayaVault.sol";
 
 contract VaultOwner is Ownable {
@@ -14,7 +14,7 @@ contract VaultOwner is Ownable {
      * @notice Constructor
      * @param _wayaVaultAddress: WayaVault contract address
      */
-    constructor(address _wayaVaultAddress) public {
+    constructor(address _wayaVaultAddress) {
         wayaVault = WayaVault(_wayaVaultAddress);
     }
 

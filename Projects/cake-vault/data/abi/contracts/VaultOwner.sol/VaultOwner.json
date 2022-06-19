@@ -30,19 +30,6 @@
     "type": "event"
   },
   {
-    "inputs": [],
-    "name": "wayaVault",
-    "outputs": [
-      {
-        "internalType": "contract WayaVault",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "address",
@@ -172,6 +159,19 @@
     "name": "unpause",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "wayaVault",
+    "outputs": [
+      {
+        "internalType": "contract WayaVault",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   }
 ]
