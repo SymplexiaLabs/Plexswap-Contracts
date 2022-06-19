@@ -9,7 +9,7 @@ import "./WayaToken.sol";
 import "./GayaBarn.sol";
 
 
-// TaskMaster is the master of Waya. He can make Waya and he is a fair guy.
+// TaskMaster is the master of Waya. He can make Waya and only he is can do this.
 //
 // Note that it's ownable and the owner wields tremendous power. The ownership
 // will be transferred to a governance smart contract once WAYA is sufficiently
