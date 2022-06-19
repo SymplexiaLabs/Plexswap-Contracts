@@ -18,7 +18,7 @@ contract PlexswapRouter is IPlexswapRouter02, Ownable {
     address public immutable override WETH;
 
     mapping (address => bool) public _isApprovedPartner;
-    bool isUnrestrictedRouter = true;
+    bool public isUnrestrictedRouter = true;
 
     modifier ensure(uint256 deadline) {
         require(deadline >= block.timestamp, "PlexswapRouter: EXPIRED");
