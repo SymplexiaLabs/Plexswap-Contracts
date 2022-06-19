@@ -3,14 +3,14 @@ import { artifacts, contract } from "hardhat";
 import { assert } from "chai";
 
 const WayaToken = artifacts.require("WayaToken");
-const SyrupBar = artifacts.require("SyrupBar");
+const GayaBarn = artifacts.require("GayaBarn");
 
-contract("SyrupBar", ([alice, bob, minter]) => {
+contract("GayaBarn", ([alice, bob, minter]) => {
   let cake, syrup;
 
   beforeEach(async () => {
     cake = await WayaToken.new({ from: minter });
-    syrup = await SyrupBar.new(cake.address, { from: minter });
+    syrup = await GayaBarn.new(cake.address, { from: minter });
   });
 
   it("mint", async () => {

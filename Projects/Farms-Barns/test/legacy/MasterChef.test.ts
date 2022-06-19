@@ -3,7 +3,7 @@ import { artifacts, contract } from "hardhat";
 import { assert } from "chai";
 
 const WayaToken = artifacts.require("WayaToken");
-const SyrupBar = artifacts.require("SyrupBar");
+const GayaBarn = artifacts.require("GayaBarn");
 const TaskMaster = artifacts.require("TaskMaster");
 const MockBEP20 = artifacts.require("libs/MockBEP20");
 
@@ -12,7 +12,7 @@ contract("TaskMaster", ([alice, bob, dev, minter]) => {
 
   beforeEach(async () => {
     cake = await WayaToken.new({ from: minter });
-    syrup = await SyrupBar.new(cake.address, { from: minter });
+    syrup = await GayaBarn.new(cake.address, { from: minter });
     lp1 = await MockBEP20.new("LPToken", "LP1", "1000000", { from: minter });
     lp2 = await MockBEP20.new("LPToken", "LP2", "1000000", { from: minter });
     lp3 = await MockBEP20.new("LPToken", "LP3", "1000000", { from: minter });

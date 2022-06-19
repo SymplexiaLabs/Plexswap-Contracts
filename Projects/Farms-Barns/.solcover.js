@@ -14,7 +14,7 @@ module.exports = {
     "LotteryRewardPool.sol",
     "TaskMaster.sol",
     "SousChef.sol",
-    "SyrupBar.sol",
+    "GayaBarn.sol",
     "Timelock.sol",
   ],
   measureStatementCoverage: false,

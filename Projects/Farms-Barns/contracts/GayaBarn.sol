@@ -5,8 +5,8 @@ import "./ERC20.sol";
 import "./Ownable.sol";
 import "./WayaToken.sol";
 
-// SyrupBar with Governance.
-contract SyrupBar is ERC20("SyrupBar Token", "SYRUP"), Ownable {
+// GayaBarn with Governance.
+contract GayaBarn is ERC20("GayaBarn Token", "GAYA"), Ownable {
     /// @dev Creates `_amount` token to `_to`. Must only be called by the owner (TaskMaster).
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);

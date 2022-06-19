@@ -6,7 +6,7 @@ import "./IERC20Metadata.sol";
 import "./SafeERC20.sol";
 
 import "./WayaToken.sol";
-import "./SyrupBar.sol";
+import "./GayaBarn.sol";
 
 
 // TaskMaster is the master of Waya. He can make Waya and he is a fair guy.
@@ -47,8 +47,8 @@ contract TaskMaster is Ownable {
 
     // The WAYA TOKEN!
     WayaToken public cake;
-    // The SYRUP TOKEN!
-    SyrupBar public syrup;
+    // The GAYA TOKEN!
+    GayaBarn public syrup;
     // Dev address.
     address public devaddr;
     // WAYA tokens created per block.
@@ -71,7 +71,7 @@ contract TaskMaster is Ownable {
 
     constructor(
         WayaToken _cake,
-        SyrupBar _syrup,
+        GayaBarn _syrup,
         address _devaddr,
         uint256 _cakePerBlock,
         uint256 _startBlock

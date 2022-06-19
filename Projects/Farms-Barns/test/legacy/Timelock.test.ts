@@ -6,7 +6,7 @@ const WayaToken = artifacts.require("WayaToken");
 const TaskMaster = artifacts.require("TaskMaster");
 const MockBEP20 = artifacts.require("libs/MockBEP20");
 const Timelock = artifacts.require("Timelock");
-const SyrupBar = artifacts.require("SyrupBar");
+const GayaBarn = artifacts.require("GayaBarn");
 
 function encodeParameters(types, values) {
   const abi = new ethers.utils.AbiCoder();
@@ -75,7 +75,7 @@ contract("Timelock", ([alice, bob, carol, dev, minter]) => {
 
   it("should also work with TaskMaster", async () => {
     lp1 = await MockBEP20.new("LPToken", "LP", "10000000000", { from: minter });
-    syrup = await SyrupBar.new(cake.address, { from: minter });
+    syrup = await GayaBarn.new(cake.address, { from: minter });
     chef = await TaskMaster.new(cake.address, syrup.address, dev, "1000", "0", { from: alice });
     await cake.transferOwnership(chef.address, { from: alice });
     await syrup.transferOwnership(chef.address, { from: minter });
