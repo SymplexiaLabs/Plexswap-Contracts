@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "./Ownable.sol";
-import "./IERC20Metadata.sol";
+import "./IERC20.sol";
 import "./SafeERC20.sol";
 
 import "./WayaToken.sol";
@@ -18,7 +18,7 @@ import "./GayaBarn.sol";
 // Have fun reading it. Hopefully it's bug-free. God bless.
 
 contract TaskMaster is Ownable {
-    using SafeERC20 for IERC20Metadata;
+    using SafeERC20 for IERC20;
 
     // Info of each user.
     struct UserInfo {
@@ -39,7 +39,7 @@ contract TaskMaster is Ownable {
 
     // Info of each pool.
     struct PoolInfo {
-        IERC20Metadata lpToken; // Address of LP token contract.
+        IERC20  lpToken; // Address of LP token contract.
         uint256 allocPoint; // How many allocation points assigned to this pool. WAYAs to distribute per block.
         uint256 lastRewardBlock; // Last block number that WAYAs distribution occurs.
         uint256 accWayaPerShare; // Accumulated WAYAs per share, times 1e12. See below.
@@ -100,7 +100,7 @@ contract TaskMaster is Ownable {
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
     function add(
         uint256 _allocPoint,
-        IERC20Metadata _lpToken,
+        IERC20 _lpToken,
         bool _withUpdate
     ) public onlyOwner {
         if (_withUpdate) {

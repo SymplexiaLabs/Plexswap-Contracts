@@ -13,7 +13,7 @@ module.exports = {
     "WayaToken.sol",
     "LotteryRewardPool.sol",
     "TaskMaster.sol",
-    "SousChef.sol",
+    "TaskAssistant.sol",
     "GayaBarn.sol",
     "Timelock.sol",
   ],
