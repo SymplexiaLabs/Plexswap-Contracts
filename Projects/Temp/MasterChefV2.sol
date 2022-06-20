@@ -1,11 +1,11 @@
-import "./interfaces/IMasterChef.sol";
+import "./interfaces/ITaskMaster.sol";
 
-/// @notice The (older) MasterChef contract gives out a constant number of CAKE tokens per block.
+/// @notice The (older) TaskMaster contract gives out a constant number of CAKE tokens per block.
 /// It is the only address with minting rights for CAKE.
-/// The idea for this MasterChef V2 (MCV2) contract is therefore to be the owner of a dummy token
-/// that is deposited into the MasterChef V1 (MCV1) contract.
+/// The idea for this TaskMaster V2 (MCV2) contract is therefore to be the owner of a dummy token
+/// that is deposited into the TaskMaster V1 (MCV1) contract.
 /// The allocation point for this pool on MCV1 is the total allocation point for all pools that receive incentives.
-contract MasterChefV2 is Ownable, ReentrancyGuard {
+contract TaskMasterV2 is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
@@ -36,7 +36,7 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     /// `accCakePerShare` Accumulated CAKEs per share, times 1e12.
     /// `lastRewardBlock` Last block number that pool update action is executed.
     /// `isRegular` The flag to set pool is regular or special. See below:
-    ///     In MasterChef V2 farms are "regular pools". "special pools", which use a different sets of
+    ///     In TaskMaster V2 farms are "regular pools". "special pools", which use a different sets of
     ///     `allocPoint` and their own `totalSpecialAllocPoint` are designed to handle the distribution of
     ///     the CAKE rewards to all the PancakeSwap products.
     /// `totalBoostedShare` The total amount of user shares in each pool. After considering the share boosts.
@@ -49,7 +49,7 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     }
 
     /// @notice Address of MCV1 contract.
-    IMasterChef public immutable MASTER_CHEF;
+    ITaskMaster public immutable MASTER_CHEF;
     /// @notice Address of CAKE contract.
     IBEP20 public immutable CAKE;
 
@@ -75,7 +75,7 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     /// @notice Total special allocation points. Must be the sum of all special pools' allocation points.
     uint256 public totalSpecialAllocPoint;
     ///  @notice 40 cakes per block in MCV1
-    uint256 public constant MASTERCHEF_CAKE_PER_BLOCK = 40 * 1e18;
+    uint256 public constant TaskMaster_CAKE_PER_BLOCK = 40 * 1e18;
     uint256 public constant ACC_CAKE_PRECISION = 1e18;
 
     /// @notice Basic boost factor, none boosted user's boost factor
@@ -113,7 +113,7 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     /// @param _MASTER_PID The pool id of the dummy pool on the MCV1.
     /// @param _burnAdmin The address of burn admin.
     constructor(
-        IMasterChef _MASTER_CHEF,
+        ITaskMaster _MASTER_CHEF,
         IBEP20 _CAKE,
         uint256 _MASTER_PID,
         address _burnAdmin
@@ -138,7 +138,7 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     /// @param dummyToken The address of the BEP-20 token to be deposited into MCV1.
     function init(IBEP20 dummyToken) external onlyOwner {
         uint256 balance = dummyToken.balanceOf(msg.sender);
-        require(balance != 0, "MasterChefV2: Balance must exceed 0");
+        require(balance != 0, "TaskMasterV2: Balance must exceed 0");
         dummyToken.safeTransferFrom(msg.sender, address(this), balance);
         dummyToken.approve(address(MASTER_CHEF), balance);
         MASTER_CHEF.deposit(MASTER_PID, balance);
@@ -255,15 +255,15 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     /// @param _isRegular If the pool belongs to regular or special.
     function cakePerBlock(bool _isRegular) public view returns (uint256 amount) {
         if (_isRegular) {
-            amount = MASTERCHEF_CAKE_PER_BLOCK.mul(cakeRateToRegularFarm).div(CAKE_RATE_TOTAL_PRECISION);
+            amount = TaskMaster_CAKE_PER_BLOCK.mul(cakeRateToRegularFarm).div(CAKE_RATE_TOTAL_PRECISION);
         } else {
-            amount = MASTERCHEF_CAKE_PER_BLOCK.mul(cakeRateToSpecialFarm).div(CAKE_RATE_TOTAL_PRECISION);
+            amount = TaskMaster_CAKE_PER_BLOCK.mul(cakeRateToSpecialFarm).div(CAKE_RATE_TOTAL_PRECISION);
         }
     }
 
     /// @notice Calculates and returns the `amount` of CAKE per block to burn.
     function cakePerBlockToBurn() public view returns (uint256 amount) {
-        amount = MASTERCHEF_CAKE_PER_BLOCK.mul(cakeRateToBurn).div(CAKE_RATE_TOTAL_PRECISION);
+        amount = TaskMaster_CAKE_PER_BLOCK.mul(cakeRateToBurn).div(CAKE_RATE_TOTAL_PRECISION);
     }
 
     /// @notice Update reward variables for the given pool.
@@ -297,7 +297,7 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
 
         require(
             pool.isRegular || whiteList[msg.sender],
-            "MasterChefV2: The address is not available to deposit in this pool"
+            "TaskMasterV2: The address is not available to deposit in this pool"
         );
 
         uint256 multiplier = getBoostMultiplier(msg.sender, _pid);
@@ -353,7 +353,7 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     }
 
     /// @notice Harvests CAKE from `MASTER_CHEF` MCV1 and pool `MASTER_PID` to MCV2.
-    function harvestFromMasterChef() public {
+    function harvestFromTaskMaster() public {
         MASTER_CHEF.deposit(MASTER_PID, 0);
     }
 
@@ -402,11 +402,11 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     ) external onlyOwner {
         require(
             _burnRate > 0 && _regularFarmRate > 0 && _specialFarmRate > 0,
-            "MasterChefV2: Cake rate must be greater than 0"
+            "TaskMasterV2: Cake rate must be greater than 0"
         );
         require(
             _burnRate.add(_regularFarmRate).add(_specialFarmRate) == CAKE_RATE_TOTAL_PRECISION,
-            "MasterChefV2: Total rate must be 1e12"
+            "TaskMasterV2: Total rate must be 1e12"
         );
         if (_withUpdate) {
             massUpdatePools();
@@ -424,8 +424,8 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     /// @notice Update burn admin address.
     /// @param _newAdmin The new burn admin address.
     function updateBurnAdmin(address _newAdmin) external onlyOwner {
-        require(_newAdmin != address(0), "MasterChefV2: Burn admin address must be valid");
-        require(_newAdmin != burnAdmin, "MasterChefV2: Burn admin address is the same with current address");
+        require(_newAdmin != address(0), "TaskMasterV2: Burn admin address must be valid");
+        require(_newAdmin != burnAdmin, "TaskMasterV2: Burn admin address is the same with current address");
         address _oldAdmin = burnAdmin;
         burnAdmin = _newAdmin;
         emit UpdateBurnAdmin(_oldAdmin, _newAdmin);
@@ -435,7 +435,7 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     /// @param _user The address to be updated.
     /// @param _isValid The flag for valid or invalid.
     function updateWhiteList(address _user, bool _isValid) external onlyOwner {
-        require(_user != address(0), "MasterChefV2: The white list address must be valid");
+        require(_user != address(0), "TaskMasterV2: The white list address must be valid");
 
         whiteList[_user] = _isValid;
         emit UpdateWhiteList(_user, _isValid);
@@ -446,7 +446,7 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     function updateBoostContract(address _newBoostContract) external onlyOwner {
         require(
             _newBoostContract != address(0) && _newBoostContract != boostContract,
-            "MasterChefV2: New boost contract address must be valid"
+            "TaskMasterV2: New boost contract address must be valid"
         );
 
         boostContract = _newBoostContract;
@@ -462,11 +462,11 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
         uint256 _pid,
         uint256 _newMultiplier
     ) external onlyBoostContract nonReentrant {
-        require(_user != address(0), "MasterChefV2: The user address must be valid");
-        require(poolInfo[_pid].isRegular, "MasterChefV2: Only regular farm could be boosted");
+        require(_user != address(0), "TaskMasterV2: The user address must be valid");
+        require(poolInfo[_pid].isRegular, "TaskMasterV2: Only regular farm could be boosted");
         require(
             _newMultiplier >= BOOST_PRECISION && _newMultiplier <= MAX_BOOST_PRECISION,
-            "MasterChefV2: Invalid new boost multiplier"
+            "TaskMasterV2: Invalid new boost multiplier"
         );
 
         PoolInfo memory pool = updatePool(_pid);
@@ -520,7 +520,7 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
         if (_amount > 0) {
             // Check whether MCV2 has enough CAKE. If not, harvest from MCV1.
             if (CAKE.balanceOf(address(this)) < _amount) {
-                harvestFromMasterChef();
+                harvestFromTaskMaster();
             }
             uint256 balance = CAKE.balanceOf(address(this));
             if (balance < _amount) {
