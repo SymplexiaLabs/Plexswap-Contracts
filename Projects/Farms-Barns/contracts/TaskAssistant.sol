@@ -12,16 +12,16 @@ contract TaskAssistant {
 
     // Info of each user.
     struct UserInfo {
-        uint256 amount;   // How many SYRUP tokens the user has provided.
+        uint256 amount;   // How many GAYA tokens the user has provided.
         uint256 rewardDebt;  // Reward debt. See explanation below.
         uint256 rewardPending;
         //
-        // We do some fancy math here. Basically, any point in time, the amount of SYRUPs
+        // We do some fancy math here. Basically, any point in time, the amount of GAYAs
         // entitled to a user but is pending to be distributed is:
         //
         //   pending reward = (user.amount * pool.accRewardPerShare) - user.rewardDebt + user.rewardPending
         //
-        // Whenever a user deposits or withdraws SYRUP tokens to a pool. Here's what happens:
+        // Whenever a user deposits or withdraws GAYA tokens to a pool. Here's what happens:
         //   1. The pool's `accRewardPerShare` (and `lastRewardBlock`) gets updated.
         //   2. User receives the pending reward sent to his/her address.
         //   3. User's `amount` gets updated.
@@ -35,8 +35,8 @@ contract TaskAssistant {
         uint256 accRewardPerShare; // Accumulated reward per share, times 1e12. See below.
     }
 
-    // The SYRUP TOKEN!
-    IERC20 public syrup;
+    // The GAYA TOKEN!
+    IERC20 public gaya;
     // rewards created per block.
     uint256 public rewardPerBlock;
 
@@ -58,12 +58,12 @@ contract TaskAssistant {
     event EmergencyWithdraw(address indexed user, uint256 amount);
 
     constructor(
-        IERC20 _syrup,
+        IERC20 _gaya,
         uint256 _rewardPerBlock,
         uint256 _startBlock,
         uint256 _endBlock
     ) {
-        syrup = _syrup;
+        gaya = _gaya;
         rewardPerBlock = _rewardPerBlock;
         startBlock = _startBlock;
         bonusEndBlock = _endBlock;
@@ -95,7 +95,7 @@ contract TaskAssistant {
         PoolInfo storage pool = poolInfo;
         UserInfo storage user = userInfo[_user];
         uint256 accRewardPerShare = pool.accRewardPerShare;
-        uint256 stakedSupply = syrup.balanceOf(address(this));
+        uint256 stakedSupply = gaya.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && stakedSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
             uint256 tokenReward = multiplier * rewardPerBlock;
@@ -109,15 +109,15 @@ contract TaskAssistant {
         if (block.number <= poolInfo.lastRewardBlock) {
             return;
         }
-        uint256 syrupSupply = syrup.balanceOf(address(this));
-        if (syrupSupply == 0) {
+        uint256 gayaSupply = gaya.balanceOf(address(this));
+        if (gayaSupply == 0) {
             poolInfo.lastRewardBlock = block.number;
             return;
         }
         uint256 multiplier = getMultiplier(poolInfo.lastRewardBlock, block.number);
         uint256 tokenReward = multiplier * rewardPerBlock;
 
-        poolInfo.accRewardPerShare = poolInfo.accRewardPerShare + ((tokenReward * (1e12)) / syrupSupply);
+        poolInfo.accRewardPerShare = poolInfo.accRewardPerShare + ((tokenReward * (1e12)) / gayaSupply);
         poolInfo.lastRewardBlock = block.number;
     }
 
@@ -127,7 +127,7 @@ contract TaskAssistant {
         require (_amount > 0, 'amount 0');
         UserInfo storage user = userInfo[msg.sender];
         updatePool();
-        syrup.safeTransferFrom(address(msg.sender), address(this), _amount);
+        gaya.safeTransferFrom(address(msg.sender), address(this), _amount);
         // The deposit behavior before farming will result in duplicate addresses, and thus we will manually remove them when airdropping.
         if (user.amount == 0 && user.rewardPending == 0 && user.rewardDebt == 0) {
             addressList.push(address(msg.sender));
@@ -146,7 +146,7 @@ contract TaskAssistant {
         require(user.amount >= _amount, "withdraw: not enough");
 
         updatePool();
-        syrup.safeTransfer(address(msg.sender), _amount);
+        gaya.safeTransfer(address(msg.sender), _amount);
 
         user.rewardPending = ((user.amount * poolInfo.accRewardPerShare) / (1e12)) - user.rewardDebt + user.rewardPending;
         user.amount = user.amount - _amount;
@@ -158,7 +158,7 @@ contract TaskAssistant {
     // Withdraw without caring about rewards. EMERGENCY ONLY.
     function emergencyWithdraw() public {
         UserInfo storage user = userInfo[msg.sender];
-        syrup.safeTransfer(address(msg.sender), user.amount);
+        gaya.safeTransfer(address(msg.sender), user.amount);
         emit EmergencyWithdraw(msg.sender, user.amount);
         user.amount = 0;
         user.rewardDebt = 0;

@@ -3,7 +3,7 @@
     "inputs": [
       {
         "internalType": "contract IERC20",
-        "name": "_syrup",
+        "name": "_gaya",
         "type": "address"
       },
       {
@@ -212,7 +212,7 @@
   },
   {
     "inputs": [],
-    "name": "syrup",
+    "name": "gaya",
     "outputs": [
       {
         "internalType": "contract IERC20",
