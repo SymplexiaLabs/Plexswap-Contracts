@@ -75,13 +75,13 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     mapping(address => bool) public whiteList;
 
     /// @notice The pool id of the CF mock token pool in TM.
-    uint256 public immutable MASTER_PID;
+    uint256 public immutable DUMMYPOOL_PID;
     /// @notice Total regular allocation points. Must be the sum of all regular pools' allocation points.
     uint256 public totalRegularAllocPoint;
     /// @notice Total special allocation points. Must be the sum of all special pools' allocation points.
     uint256 public totalSpecialAllocPoint;
     ///  @notice 40 wayas per block in TM
-    uint256 public constant TaskMaster_WAYA_PER_BLOCK = 40 * 1e18;
+    uint256 public constant TASKMASTER_WAYA_PER_BLOCK = 40 * 1e18;
     uint256 public constant ACC_WAYA_PRECISION = 1e18;
 
     /// @notice Basic boost factor, none boosted user's boost factor
@@ -114,19 +114,19 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     event UpdateBoostContract(address indexed boostContract);
     event UpdateBoostMultiplier(address indexed user, uint256 pid, uint256 oldMultiplier, uint256 newMultiplier);
 
-    /// @param _TASK_MASTER The PlexSwap TM contract address.
-    /// @param _WAYA The WAYA token contract address.
-    /// @param _MASTER_PID The pool id of the dummy pool on the TM.
-    /// @param _burnAdmin The address of burn admin.
+    /// @param _TASK_MASTER 	- The PlexSwap TM contract address.
+    /// @param _WAYA 		- The WAYA token contract address.
+    /// @param _DUMMYPOOL_PID 	- The pool id of the dummy pool on the TM.
+    /// @param _burnAdmin 		- The address of burn admin.
     constructor(
         ITaskMaster _TASK_MASTER,
         IERC20 _WAYA,
-        uint256 _MASTER_PID,
+        uint256 _DUMMYPOOL_PID,
         address _burnAdmin
     ) {
         TASK_MASTER = _TASK_MASTER;
         WAYA = _WAYA;
-        MASTER_PID = _MASTER_PID;
+        DUMMYPOOL_PID = _DUMMYPOOL_PID;
         burnAdmin = _burnAdmin;
     }
 
@@ -147,7 +147,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         require(balance != 0, "ChiefFarmer: Balance must exceed 0");
         dummyToken.safeTransferFrom(msg.sender, address(this), balance);
         dummyToken.approve(address(TASK_MASTER), balance);
-        TASK_MASTER.deposit(MASTER_PID, balance);
+        TASK_MASTER.deposit(DUMMYPOOL_PID, balance);
         // CF start to earn WAYA reward from current block in TM pool
         lastBurnedBlock = block.number;
         emit Init();
@@ -261,15 +261,15 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     /// @param _isRegular If the pool belongs to regular or special.
     function wayaPerBlock(bool _isRegular) public view returns (uint256 amount) {
         if (_isRegular) {
-            amount = (TaskMaster_WAYA_PER_BLOCK * wayaRateToRegularFarm) / WAYA_RATE_TOTAL_PRECISION;
+            amount = (TASKMASTER_WAYA_PER_BLOCK * wayaRateToRegularFarm) / WAYA_RATE_TOTAL_PRECISION;
         } else {
-            amount = (TaskMaster_WAYA_PER_BLOCK * wayaRateToSpecialFarm) / WAYA_RATE_TOTAL_PRECISION;
+            amount = (TASKMASTER_WAYA_PER_BLOCK * wayaRateToSpecialFarm) / WAYA_RATE_TOTAL_PRECISION;
         }
     }
 
     /// @notice Calculates and returns the `amount` of WAYA per block to burn.
     function wayaPerBlockToBurn() public view returns (uint256 amount) {
-        amount = (TaskMaster_WAYA_PER_BLOCK * wayaRateToBurn) / WAYA_RATE_TOTAL_PRECISION;
+        amount = (TASKMASTER_WAYA_PER_BLOCK * wayaRateToBurn) / WAYA_RATE_TOTAL_PRECISION;
     }
 
     /// @notice Update reward variables for the given pool.
@@ -357,9 +357,9 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
-    /// @notice Harvests WAYA from `TASK_MASTER` TM and pool `MASTER_PID` to CF.
+    /// @notice Harvests WAYA from `TASK_MASTER` TM and pool `DUMMYPOOL_PID` to CF.
     function harvestFromTaskMaster() public {
-        TASK_MASTER.deposit(MASTER_PID, 0);
+        TASK_MASTER.deposit(DUMMYPOOL_PID, 0);
     }
 
     /// @notice Withdraw without caring about the rewards. EMERGENCY ONLY.
