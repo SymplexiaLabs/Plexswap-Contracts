@@ -1,8 +1,8 @@
-# Panwaya Waya Vault
+# Plexswap Waya Vault
 
 ## Description
 
-Panwayaswap Waya Vault for the WAYA token from the TaskMaster.
+Plexswap Waya Vault for the WAYA token from the TaskMaster.
 
 ## Deployment
 
