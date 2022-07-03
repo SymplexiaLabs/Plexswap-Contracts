@@ -16,8 +16,8 @@ contract WayaVault is Ownable, Pausable {
         uint256 lastUserActionTime; // keeps track of the last user action time
     }
 
-    IERC20 public immutable token; // Waya token
-    IERC20 public immutable receiptToken; // Gaya token
+    IERC20 public immutable primaryToken; // Waya token
+    IERC20 public immutable receiptTaken; // Gaya token
 
     ITaskMaster public immutable taskmaster;
 
@@ -25,8 +25,8 @@ contract WayaVault is Ownable, Pausable {
 
     uint256 public totalShares;
     uint256 public lastHarvestedTime;
-    address public admin;
-    address public treasury;
+    address public Contract_Manager;
+    address public Financial_Controller;
 
     uint256 public constant MAX_PERFORMANCE_FEE = 500; // 5%
     uint256 public constant MAX_CALL_FEE = 100; // 1%
@@ -48,34 +48,34 @@ contract WayaVault is Ownable, Pausable {
 
     /**
      * @notice Constructor
-     * @param _token: Waya token contract
+     * @param _primaryToken: Waya token contract
      * @param _receiptToken: Gaya token contract
      * @param _taskmaster: TaskMaster contract
-     * @param _admin: address of the admin
-     * @param _treasury: address of the treasury (collects fees)
+     * @param _contract_Manager: address of the Contract_Manager
+     * @param _financial_Controller: address of the Financial_Controller (collects fees)
      */
     constructor(
-        IERC20 _token,
+        IERC20 _primaryToken,
         IERC20 _receiptToken,
         ITaskMaster _taskmaster,
-        address _admin,
-        address _treasury
+        address _contract_Manager,
+        address _financial_Controller
     ) {
-        token = _token;
-        receiptToken = _receiptToken;
+        primaryToken = _primaryToken;
+        receiptTaken = _receiptToken;
         taskmaster = _taskmaster;
-        admin = _admin;
-        treasury = _treasury;
+        Contract_Manager = _contract_Manager;
+        Financial_Controller = _financial_Controller;
 
         // Infinite approve
-        IERC20(_token).safeApprove(address(_taskmaster), MAX_INT);
+        IERC20(_primaryToken).safeApprove(address(_taskmaster), MAX_INT);
     }
 
     /**
-     * @notice Checks if the msg.sender is the admin address
+     * @notice Checks if the msg.sender is the Contract_Manager address
      */
-    modifier onlyAdmin() {
-        require(msg.sender == admin, "admin: wut?");
+    modifier onlyContractManager() {
+        require(msg.sender == Contract_Manager, "Contract_Manager: wut?");
         _;
     }
 
@@ -97,7 +97,7 @@ contract WayaVault is Ownable, Pausable {
         require(_amount > 0, "Nothing to deposit");
 
         uint256 pool = balanceOf();
-        token.safeTransferFrom(msg.sender, address(this), _amount);
+        primaryToken.safeTransferFrom(msg.sender, address(this), _amount);
         uint256 currentShares = 0;
         if (totalShares != 0) {
             currentShares = (_amount *totalShares) / pool;
@@ -135,10 +135,10 @@ contract WayaVault is Ownable, Pausable {
 
         uint256 bal = available();
         uint256 currentPerformanceFee = (bal * performanceFee) / 10000;
-        token.safeTransfer(treasury, currentPerformanceFee);
+        primaryToken.safeTransfer(Financial_Controller, currentPerformanceFee);
 
         uint256 currentCallFee = (bal * callFee) / 10000;
-        token.safeTransfer(msg.sender, currentCallFee);
+        primaryToken.safeTransfer(msg.sender, currentCallFee);
 
         _earn();
 
@@ -148,55 +148,55 @@ contract WayaVault is Ownable, Pausable {
     }
 
     /**
-     * @notice Sets admin address
+     * @notice Sets Contract_Manager address
      * @dev Only callable by the contract owner.
      */
-    function setAdmin(address _admin) external onlyOwner {
-        require(_admin != address(0), "Cannot be zero address");
-        admin = _admin;
+    function setContractManager(address _contract_Manager) external onlyOwner {
+        require(_contract_Manager != address(0), "Cannot be zero address");
+        Contract_Manager = _contract_Manager;
     }
 
     /**
-     * @notice Sets treasury address
+     * @notice Sets Financial_Controller address
      * @dev Only callable by the contract owner.
      */
-    function setTreasury(address _treasury) external onlyOwner {
-        require(_treasury != address(0), "Cannot be zero address");
-        treasury = _treasury;
+    function setTreasury(address _financial_Controller) external onlyOwner {
+        require(_financial_Controller != address(0), "Cannot be zero address");
+        Financial_Controller = _financial_Controller;
     }
 
     /**
      * @notice Sets performance fee
-     * @dev Only callable by the contract admin.
+     * @dev Only callable by the contract Contract_Manager.
      */
-    function setPerformanceFee(uint256 _performanceFee) external onlyAdmin {
+    function setPerformanceFee(uint256 _performanceFee) external onlyContractManager {
         require(_performanceFee <= MAX_PERFORMANCE_FEE, "performanceFee cannot be more than MAX_PERFORMANCE_FEE");
         performanceFee = _performanceFee;
     }
 
     /**
      * @notice Sets call fee
-     * @dev Only callable by the contract admin.
+     * @dev Only callable by the contract Contract_Manager.
      */
-    function setCallFee(uint256 _callFee) external onlyAdmin {
+    function setCallFee(uint256 _callFee) external onlyContractManager {
         require(_callFee <= MAX_CALL_FEE, "callFee cannot be more than MAX_CALL_FEE");
         callFee = _callFee;
     }
 
     /**
      * @notice Sets withdraw fee
-     * @dev Only callable by the contract admin.
+     * @dev Only callable by the contract Contract_Manager.
      */
-    function setWithdrawFee(uint256 _withdrawFee) external onlyAdmin {
+    function setWithdrawFee(uint256 _withdrawFee) external onlyContractManager {
         require(_withdrawFee <= MAX_WITHDRAW_FEE, "withdrawFee cannot be more than MAX_WITHDRAW_FEE");
         withdrawFee = _withdrawFee;
     }
 
     /**
      * @notice Sets withdraw fee period
-     * @dev Only callable by the contract admin.
+     * @dev Only callable by the contract Contract_Manager.
      */
-    function setWithdrawFeePeriod(uint256 _withdrawFeePeriod) external onlyAdmin {
+    function setWithdrawFeePeriod(uint256 _withdrawFeePeriod) external onlyContractManager {
         require(
             _withdrawFeePeriod <= MAX_WITHDRAW_FEE_PERIOD,
             "withdrawFeePeriod cannot be more than MAX_WITHDRAW_FEE_PERIOD"
@@ -206,18 +206,18 @@ contract WayaVault is Ownable, Pausable {
 
     /**
      * @notice Withdraws from TaskMaster to Vault without caring about rewards.
-     * @dev EMERGENCY ONLY. Only callable by the contract admin.
+     * @dev EMERGENCY ONLY. Only callable by the contract Contract_Manager.
      */
-    function emergencyWithdraw() external onlyAdmin {
+    function emergencyWithdraw() external onlyContractManager {
         ITaskMaster(taskmaster).emergencyWithdraw(0);
     }
 
     /**
-     * @notice Withdraw unexpected tokens sent to the Waya Vault
+     * @notice Withdraw unexpected primaryTokens sent to the Waya Vault
      */
-    function inCaseTokensGetStuck(address _token) external onlyAdmin {
-        require(_token != address(token), "Token cannot be same as deposit token");
-        require(_token != address(receiptToken), "Token cannot be same as receipt token");
+    function inCaseTokensGetStuck(address _token) external onlyContractManager {
+        require(_token != address(primaryToken), "Token cannot be same as deposit token");
+        require(_token != address(receiptTaken), "Token cannot be same as receipt token");
 
         uint256 amount = IERC20(_token).balanceOf(address(this));
         IERC20(_token).safeTransfer(msg.sender, amount);
@@ -227,7 +227,7 @@ contract WayaVault is Ownable, Pausable {
      * @notice Triggers stopped state
      * @dev Only possible when contract not paused.
      */
-    function pause() external onlyAdmin whenNotPaused {
+    function pause() external onlyContractManager whenNotPaused {
         _pause();
         emit Pause();
     }
@@ -236,7 +236,7 @@ contract WayaVault is Ownable, Pausable {
      * @notice Returns to normal state
      * @dev Only possible when contract is paused.
      */
-    function unpause() external onlyAdmin whenPaused {
+    function unpause() external onlyContractManager whenPaused {
         _unpause();
         emit Unpause();
     }
@@ -297,7 +297,7 @@ contract WayaVault is Ownable, Pausable {
 
         if (block.timestamp < user.lastDepositedTime + withdrawFeePeriod) {
             uint256 currentWithdrawFee = (currentAmount * withdrawFee) / 10000;
-            token.safeTransfer(treasury, currentWithdrawFee);
+            primaryToken.safeTransfer(Financial_Controller, currentWithdrawFee);
             currentAmount = currentAmount - currentWithdrawFee;
         }
 
@@ -309,7 +309,7 @@ contract WayaVault is Ownable, Pausable {
 
         user.lastUserActionTime = block.timestamp;
 
-        token.safeTransfer(msg.sender, currentAmount);
+        primaryToken.safeTransfer(msg.sender, currentAmount);
 
         emit Withdraw(msg.sender, currentAmount, _shares);
     }
@@ -319,7 +319,7 @@ contract WayaVault is Ownable, Pausable {
      * @dev The contract puts 100% of the tokens to work.
      */
     function available() public view returns (uint256) {
-        return token.balanceOf(address(this));
+        return primaryToken.balanceOf(address(this));
     }
 
     /**
@@ -328,7 +328,7 @@ contract WayaVault is Ownable, Pausable {
      */
     function balanceOf() public view returns (uint256) {
         (uint256 amount, ) = ITaskMaster(taskmaster).userInfo(0, address(this));
-        return token.balanceOf(address(this)) + amount;
+        return primaryToken.balanceOf(address(this)) + amount;
     }
 
     /**
