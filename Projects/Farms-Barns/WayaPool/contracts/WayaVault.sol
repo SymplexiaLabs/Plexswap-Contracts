@@ -39,7 +39,7 @@ contract WayaPool is Ownable, Pausable {
     address public ContractManager;
     address public FinancialController;
     address public TreasuryAnalyst;
-    uint256 public wayaPoolPID;         // Waya pool ID in ChiefMaster
+    uint256 public wayaPoolPID;         // Dummy Waya Pool PID
     uint256 public totalBoostDebt; // total boost debt.
     uint256 public totalLockedAmount; // total lock amount.
 
