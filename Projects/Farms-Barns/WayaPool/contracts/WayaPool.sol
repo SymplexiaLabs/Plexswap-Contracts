@@ -25,7 +25,7 @@ contract WayaPool is Ownable, Pausable {
 
     IERC20 public immutable token; // waya token.
 
-    IChiefFarmer public immutable chieffarmer;
+    IChiefFarmer public immutable ChiefFarmer;
 
     address public boostContract; // boost contract used in ChiefFarmer.
     address public VWaya;
@@ -39,7 +39,7 @@ contract WayaPool is Ownable, Pausable {
     address public ContractManager;
     address public FinancialController;
     address public TreasuryAnalyst;
-    uint256 public wayaPoolPID;         // Waya pool ID in ChiefMaster
+    uint256 public wayaPoolPID;         // Dummy Waya Pool PID
     uint256 public totalBoostDebt; // total boost debt.
     uint256 public totalLockedAmount; // total lock amount.
 
@@ -117,7 +117,7 @@ contract WayaPool is Ownable, Pausable {
         uint256 _wayaPoolPID
     ) {
         token =  _wayaAddress;
-        chieffarmer = _chieffarmer;
+        ChiefFarmer = _chieffarmer;
         ContractManager = _contractManager;
         FinancialController = _financialController;
         TreasuryAnalyst = _treasuryAnalyst;
@@ -133,8 +133,8 @@ contract WayaPool is Ownable, Pausable {
         uint256 balance = dummyToken.balanceOf(msg.sender);
         require(balance != 0, "Balance must exceed 0");
         dummyToken.safeTransferFrom(msg.sender, address(this), balance);
-        dummyToken.approve(address(chieffarmer), balance);
-        chieffarmer.deposit(wayaPoolPID, balance);
+        dummyToken.approve(address(ChiefFarmer), balance);
+        ChiefFarmer.deposit(wayaPoolPID, balance);
         emit Init();
     }
 
@@ -480,10 +480,10 @@ contract WayaPool is Ownable, Pausable {
      * @notice Harvest pending WAYA tokens from MasterChef
      */
     function harvest() internal {
-        uint256 pendingWaya = chieffarmer.pendingWaya(wayaPoolPID, address(this));
+        uint256 pendingWaya = ChiefFarmer.pendingWaya(wayaPoolPID, address(this));
         if (pendingWaya > 0) {
             uint256 balBefore = available();
-            chieffarmer.withdraw(wayaPoolPID, 0);
+            ChiefFarmer.withdraw(wayaPoolPID, 0);
             uint256 balAfter = available();
             emit Harvest(msg.sender, (balAfter - balBefore));
         }
@@ -814,7 +814,7 @@ contract WayaPool is Ownable, Pausable {
      * @return Returns total pending waya rewards
      */
     function calculateTotalPendingWayaRewards() public view returns (uint256) {
-        uint256 amount = chieffarmer.pendingWaya(wayaPoolPID, address(this));
+        uint256 amount = ChiefFarmer.pendingWaya(wayaPoolPID, address(this));
         return amount;
     }
 
