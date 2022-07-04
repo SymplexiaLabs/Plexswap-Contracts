@@ -13,7 +13,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "_MASTER_PID",
+        "name": "_DUMMYPOOL_PID",
         "type": "uint256"
       },
       {
@@ -341,7 +341,7 @@
   },
   {
     "inputs": [],
-    "name": "MASTER_PID",
+    "name": "DUMMYPOOL_PID",
     "outputs": [
       {
         "internalType": "uint256",
@@ -367,12 +367,12 @@
   },
   {
     "inputs": [],
-    "name": "TASK_MASTER",
+    "name": "TASKMASTER_WAYA_PER_BLOCK",
     "outputs": [
       {
-        "internalType": "contract ITaskMaster",
+        "internalType": "uint256",
         "name": "",
-        "type": "address"
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -380,12 +380,12 @@
   },
   {
     "inputs": [],
-    "name": "TaskMaster_WAYA_PER_BLOCK",
+    "name": "TASK_MASTER",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "contract ITaskMaster",
         "name": "",
-        "type": "uint256"
+        "type": "address"
       }
     ],
     "stateMutability": "view",

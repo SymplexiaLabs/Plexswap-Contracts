@@ -8,7 +8,7 @@ import "./IChiefFarmer.sol";
 import "./IBoostContract.sol";
 import "./IVWaya.sol";
 
-contract WayaPool is Ownable, Pausable {
+contract WayaVault is Ownable, Pausable {
     using SafeERC20 for IERC20;
 
     struct UserInfo {
