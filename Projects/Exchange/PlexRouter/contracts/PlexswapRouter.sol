@@ -504,8 +504,8 @@ contract PlexswapRouter is IPlexswapRouter02, Ownable {
         _isApprovedPartner[account] = status;
     }
 
-    function setRouterStatus (bool status) external onlyOwner {
-         isUnrestrictedRouter = status;
+    function setRouterStatus (bool  _isUnrestrictedRouter) external onlyOwner {
+         isUnrestrictedRouter = _isUnrestrictedRouter;
     }
 
 }

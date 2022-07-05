@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.0;
 
 import "./Ownable.sol";
-import "./IERC20.sol";
+import "./IERC20Metadata.sol";
 import "./SafeERC20.sol";
 
 import "./WayaToken.sol";
 import "./GayaBarn.sol";
 
 
-// TaskMaster is the master of Waya. He can make Waya and only he is can do this.
+// TaskMaster is the master of Waya. He can make Waya and he is a fair guy.
 //
 // Note that it's ownable and the owner wields tremendous power. The ownership
 // will be transferred to a governance smart contract once WAYA is sufficiently
@@ -18,7 +18,7 @@ import "./GayaBarn.sol";
 // Have fun reading it. Hopefully it's bug-free. God bless.
 
 contract TaskMaster is Ownable {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
 
     // Info of each user.
     struct UserInfo {
@@ -39,7 +39,7 @@ contract TaskMaster is Ownable {
 
     // Info of each pool.
     struct PoolInfo {
-        IERC20  lpToken; // Address of LP token contract.
+        IERC20Metadata lpToken; // Address of LP token contract.
         uint256 allocPoint; // How many allocation points assigned to this pool. WAYAs to distribute per block.
         uint256 lastRewardBlock; // Last block number that WAYAs distribution occurs.
         uint256 accWayaPerShare; // Accumulated WAYAs per share, times 1e12. See below.
@@ -97,10 +97,10 @@ contract TaskMaster is Ownable {
     }
 
     // Add a new lp to the pool. Can only be called by the owner.
-    // IMPORTANT: DO NOT add the same LP token more than once. Rewards will be messed up if you do.
+    // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
     function add(
         uint256 _allocPoint,
-        IERC20 _lpToken,
+        IERC20Metadata _lpToken,
         bool _withUpdate
     ) public onlyOwner {
         if (_withUpdate) {

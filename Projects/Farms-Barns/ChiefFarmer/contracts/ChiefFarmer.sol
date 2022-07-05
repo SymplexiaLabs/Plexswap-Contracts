@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.11;
 
 import "./Ownable.sol";
 import "./ReentrancyGuard.sol";
@@ -116,7 +116,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
 
     /// @param _TASK_MASTER 	- The PlexSwap TM contract address.
     /// @param _WAYA 		- The WAYA token contract address.
-    /// @param _DUMMYPOOL_PID 	- The pool id of the dummy pool on the TM.
+    /// @param _DUMMYPOOL_PID 	- The pool id of the dummy pool on the TaskMaster.
     /// @param _burnAdmin 		- The address of burn admin.
     constructor(
         ITaskMaster _TASK_MASTER,
