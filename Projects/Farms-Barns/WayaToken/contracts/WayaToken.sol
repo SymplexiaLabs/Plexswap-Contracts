@@ -5,17 +5,13 @@ import "./ERC20.sol";
 import "./Ownable.sol";
 
 // WayaToken with Governance.
-contract WayaToken is ERC20, BasicAccessControl {
+contract WayaToken is ERC20, Ownable {
 
     address public taskMaster;
-    
     event taskMasterUpdated  (address authorizer, address oldTaskmaster, address newTaskMaster);
 
-    constructor (string  memory _tokenName, 
-			     string  memory _tokenSymbol,
-			     address _taskMaster) ERC20(_tokenName, _tokenSymbol) {
-       
-        setTaskMaster(_taskMaster);
+    constructor (address _taskMaster) ERC20("PlexSwap Token", "WAYA") {
+           setTaskMaster(_taskMaster);
     }
 
     function setTaskMaster (address _newTaskMaster) public onlyOwner {
@@ -27,7 +23,7 @@ contract WayaToken is ERC20, BasicAccessControl {
 
     /// @dev Creates `_amount` token to `_to`. Must only be called by the TaskMaster.
     function mint(address _to, uint256 _amount) public {
-        require(_msgSender() == TaskMaster, "Sender not authorized");
+        require(_msgSender() == taskMaster, "Sender not authorized");
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
