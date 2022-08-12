@@ -9,7 +9,7 @@ import "./WayaToken.sol";
 import "./GayaToken.sol";
 
 
-// TaskMaster is the master of Waya. He can make Waya and only he is can do this.
+// TaskMaster is the master of Waya. He can make Waya and only he can do this.
 //
 // Note that it's ownable and the owner wields tremendous power. The ownership
 // will be transferred to a governance smart contract once WAYA is sufficiently
@@ -70,7 +70,7 @@ contract TaskMaster is Ownable {
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event WayaPerBlockUpdated (uint256 oldWayaPerBlock, uint256 newWayaPerBlock);
     event BonusMultiplierUpdate (uint256 oldMultiplierNumber, uint256 newMultiplierNumber);
-    
+
     constructor(
         WayaToken _waya,
         GayaBarn _gaya,
@@ -108,7 +108,7 @@ contract TaskMaster is Ownable {
 
     // Add a new lp to the pool. Can only be called by the owner.
     // IMPORTANT: DO NOT add the same LP token more than once. Rewards will be messed up if you do.
-    function add(
+    function addPool(
         uint256 _allocPoint,
         IERC20 _lpToken,
         bool _withUpdate
@@ -125,7 +125,7 @@ contract TaskMaster is Ownable {
     }
 
     // Update the given pool's WAYA allocation point. Can only be called by the owner.
-    function set(
+    function updateAllocPoint(
         uint256 _pid,
         uint256 _allocPoint,
         bool _withUpdate
