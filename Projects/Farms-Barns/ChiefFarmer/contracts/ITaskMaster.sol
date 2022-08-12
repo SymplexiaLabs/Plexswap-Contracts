@@ -10,7 +10,9 @@ interface ITaskMaster {
 
     function leaveStaking(uint256 _amount) external;
 
-    function pendingCake(uint256 _pid, address _user) external view returns (uint256);
+    function pendingWaya(uint256 _pid, address _user) external view returns (uint256);
+
+    function WayaPerBlock() external view returns (uint256);
 
     function userInfo(uint256 _pid, address _user) external view returns (uint256, uint256);
 

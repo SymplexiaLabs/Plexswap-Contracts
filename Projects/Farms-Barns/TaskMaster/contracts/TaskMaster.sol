@@ -48,11 +48,11 @@ contract TaskMaster is Ownable {
     // The WAYA TOKEN!
     WayaToken public waya;
     // The GAYA TOKEN!
-    GayaBarn public gaya;
+    GayaToken public gaya;
     // Dev address.
     address public devaddr;
     // WAYA tokens created per block.
-    uint256 public wayaPerBlock;
+    uint256 private wayaPerBlock;
     // Bonus muliplier for early waya makers.
     uint256 public BONUS_MULTIPLIER = 1;
 
@@ -73,7 +73,7 @@ contract TaskMaster is Ownable {
 
     constructor(
         WayaToken _waya,
-        GayaBarn _gaya,
+        GayaToken _gaya,
         address _devaddr,
         uint256 _wayaPerBlock,
         uint256 _startBlock
@@ -81,7 +81,7 @@ contract TaskMaster is Ownable {
         waya = _waya;
         gaya = _gaya;
         devaddr = _devaddr;
-        wayaPerBlock = _wayaPerBlock;
+        wayaPerBlock = _wayaPerBlock * (1e18);
         startBlock = _startBlock;
 
         // staking pool
@@ -90,15 +90,19 @@ contract TaskMaster is Ownable {
         totalAllocPoint = 1000;
     }
 
+    function WayaPerBlock() external view returns (uint256) {
+        return wayaPerBlock;
+    }
+    
     function updateWayaPerBlock(uint256 _newWayaPerBlock) public onlyOwner {
         uint256 _oldWayaPerBlock = wayaPerBlock;
-        wayaPerBlock = _newWayaPerBlock;
+        wayaPerBlock = _newWayaPerBlock * (1e18);
         emit WayaPerBlockUpdated(_oldWayaPerBlock, _newWayaPerBlock);
     }
 
     function updateMultiplier(uint256 _newMultiplierNumber) public onlyOwner {
         uint256 _oldMultiplierNumber = BONUS_MULTIPLIER;
-        BONUS_MULTIPLIER = _NewMultiplierNumber;
+        BONUS_MULTIPLIER = _newMultiplierNumber;
         emit BonusMultiplierUpdate(_oldMultiplierNumber, _newMultiplierNumber);
     }
 
