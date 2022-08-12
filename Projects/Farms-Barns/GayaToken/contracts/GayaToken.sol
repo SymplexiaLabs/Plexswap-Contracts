@@ -5,10 +5,26 @@ import "./ERC20.sol";
 import "./Ownable.sol";
 import "./WayaToken.sol";
 
-// GayaBarn with Governance.
-contract GayaBarn is ERC20("GayaBarn Token", "GAYA"), Ownable {
+// GayaToken with Governance.
+contract GayaToken is ERC20("Gaya Token", "GAYA"), Ownable {
+
+    address public taskMaster;
+    event taskMasterUpdated  (address authorizer, address oldTaskmaster, address newTaskMaster);
+
+    constructor (address _taskMaster) ERC20("PlexSwap Silos", "GAYA") {
+        setTaskMaster(_taskMaster);
+    }
+
+    function setTaskMaster (address _newTaskMaster) public onlyOwner {
+        require(_newTaskMaster != address(0), "Cannot be zero address");
+        address oldTaskMaster = taskMaster;
+        taskMaster = _newTaskMaster;
+        emit taskMasterUpdated (_msgSender(), oldTaskMaster, taskMaster);
+    }
+
     /// @dev Creates `_amount` token to `_to`. Must only be called by the owner (TaskMaster).
-    function mint(address _to, uint256 _amount) public onlyOwner {
+    function mint(address _to, uint256 _amount) public {
+        require(_msgSender() == taskMaster, "Sender not authorized");
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
