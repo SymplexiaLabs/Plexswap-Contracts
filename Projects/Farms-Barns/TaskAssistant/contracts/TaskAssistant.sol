@@ -6,7 +6,7 @@ import "./SafeERC20.sol";
 
 // import "@nomiclabs/buidler/console.sol";
 
-// TaskAssistant is the chef of new tokens. He can make yummy food and he is a fair guy as well as TaskMaster.
+// TaskAssistant is the farmer of new tokens. He can make yummy food and he is a fair guy as well as TaskMaster.
 contract TaskAssistant {
     using SafeERC20 for IERC20;
 
