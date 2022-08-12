@@ -6,15 +6,15 @@ import "./Ownable.sol";
 import "./WayaToken.sol";
 
 // GayaToken with Governance.
-contract GayaToken is ERC20("Gaya Token", "GAYA"), Ownable {
+contract GayaToken is ERC20, Ownable {
 
     // The WAYA TOKEN!
-    WayaToken public waya;
+    WayaToken public wayaToken;
     address public taskMaster;
     event taskMasterUpdated  (address authorizer, address oldTaskmaster, address newTaskMaster);
 
-    constructor (WayaToken _waya, address _taskMaster) ERC20("PlexSwap Silos", "GAYA") {
-        waya = _waya;
+    constructor (WayaToken _wayaToken, address _taskMaster) ERC20("PlexSwap Silos", "GAYA") {
+        wayaToken = _wayaToken;
         setTaskMaster(_taskMaster);
     }
 
@@ -39,11 +39,11 @@ contract GayaToken is ERC20("Gaya Token", "GAYA"), Ownable {
 
     // Safe waya transfer function, just in case if rounding error causes pool to not have enough WAYAs.
     function safeWayaTransfer(address _to, uint256 _amount) public onlyOwner {
-        uint256 wayaBal = waya.balanceOf(address(this));
+        uint256 wayaBal = wayaToken.balanceOf(address(this));
         if (_amount > wayaBal) {
-            waya.transfer(_to, wayaBal);
+            wayaToken.transfer(_to, wayaBal);
         } else {
-            waya.transfer(_to, _amount);
+            wayaToken.transfer(_to, _amount);
         }
     }
 

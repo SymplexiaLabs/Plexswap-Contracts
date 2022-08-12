@@ -6,7 +6,7 @@ import "./IERC20.sol";
 import "./SafeERC20.sol";
 
 import "./WayaToken.sol";
-import "./GayaBarn.sol";
+import "./GayaToken.sol";
 
 
 // TaskMaster is the master of Waya. He can make Waya and only he is can do this.
@@ -68,7 +68,9 @@ contract TaskMaster is Ownable {
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
-
+    event WayaPerBlockUpdated (uint256 oldWayaPerBlock, uint256 newWayaPerBlock);
+    event BonusMultiplierUpdate (uint256 oldMultiplierNumber, uint256 newMultiplierNumber);
+    
     constructor(
         WayaToken _waya,
         GayaBarn _gaya,
@@ -88,8 +90,16 @@ contract TaskMaster is Ownable {
         totalAllocPoint = 1000;
     }
 
-    function updateMultiplier(uint256 multiplierNumber) public onlyOwner {
-        BONUS_MULTIPLIER = multiplierNumber;
+    function updateWayaPerBlock(uint256 _newWayaPerBlock) public onlyOwner {
+        uint256 _oldWayaPerBlock = wayaPerBlock;
+        wayaPerBlock = _newWayaPerBlock;
+        emit WayaPerBlockUpdated(_oldWayaPerBlock, _newWayaPerBlock);
+    }
+
+    function updateMultiplier(uint256 _newMultiplierNumber) public onlyOwner {
+        uint256 _oldMultiplierNumber = BONUS_MULTIPLIER;
+        BONUS_MULTIPLIER = _NewMultiplierNumber;
+        emit BonusMultiplierUpdate(_oldMultiplierNumber, _newMultiplierNumber);
     }
 
     function poolLength() external view returns (uint256) {

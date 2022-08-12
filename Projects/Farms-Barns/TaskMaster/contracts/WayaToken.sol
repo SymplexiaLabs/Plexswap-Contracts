@@ -8,14 +8,10 @@ import "./Ownable.sol";
 contract WayaToken is ERC20, Ownable {
 
     address public taskMaster;
-    
     event taskMasterUpdated  (address authorizer, address oldTaskmaster, address newTaskMaster);
 
-    constructor (string  memory _tokenName, 
-			     string  memory _tokenSymbol,
-			     address _taskMaster) ERC20(_tokenName, _tokenSymbol) {
-       
-        setTaskMaster(_taskMaster);
+    constructor (address _taskMaster) ERC20("PlexSwap Token", "WAYA") {
+           setTaskMaster(_taskMaster);
     }
 
     function setTaskMaster (address _newTaskMaster) public onlyOwner {
