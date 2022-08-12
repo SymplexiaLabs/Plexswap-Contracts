@@ -64,9 +64,9 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     address public boostContract;
 
     /// @notice Info of each ChiefFarmer pool.
-    PoolInfo[] public poolInfo;
+    PoolInfo[] private _poolInfo;
     /// @notice Address of the LP token for each CF pool.
-    IERC20[] public lpToken;
+    IERC20[] private lpToken;
 
     /// @notice Info of each pool user.
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
@@ -95,7 +95,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     /// @notice WAYA distribute % for special pools
     uint256 public wayaRateToSpecialFarm = 798885000000;
 
-    uint256 public lastBurnedBlock;
+    uint256 public lastAccruedBlock;
 
     event Init();
     event AddPool(uint256 indexed pid, uint256 allocPoint, IERC20 indexed lpToken, bool isRegular);
@@ -147,10 +147,14 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         dummyToken.approve(address(TASK_MASTER), balance);
         TASK_MASTER.deposit(DUMMYPOOL_PID, balance);
         // CF start to earn WAYA reward from current block in TM pool
-        lastBurnedBlock = block.number;
+        lastAccruedBlock = block.number;
         emit Init();
     }
 
+    function poolInfo(uint256 _pid) public view returns (IERC20, PoolInfo memory) {
+        return(lpToken[_pid],_poolInfo[_pid]);
+    }
+    
     ///  @notice WAYAS per block in TaskMaster
     function wayaPerBlock() public view returns (uint256) {
         return TASK_MASTER.WayaPerBlock();
@@ -158,7 +162,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
 
     /// @notice Returns the number of CF pools.
     function poolLength() public view returns (uint256 pools) {
-        pools = poolInfo.length;
+        pools = _poolInfo.length;
     }
 
     /// @notice Add a new pool. Can only be called by the owner.
@@ -170,9 +174,9 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     /// only for WAYA distributions within PlexSwap products.
     function addPool(
         uint256 _allocPoint,
-        IERC20 _lpToken,
-        bool _isRegular,
-        bool _withUpdate
+        IERC20  _lpToken,
+        bool    _isRegular,
+        bool    _withUpdate
     ) external onlyOwner {
         require(_lpToken.balanceOf(address(this)) >= 0, "None ERC20 tokens");
         // stake WAYA token will cause staked token and reward token mixed up,
@@ -190,7 +194,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         }
         lpToken.push(_lpToken);
 
-        poolInfo.push(
+        _poolInfo.push(
             PoolInfo({
         allocPoint: _allocPoint,
         lastRewardBlock: block.number,
@@ -218,12 +222,12 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
             massUpdatePools();
         }
 
-        if (poolInfo[_pid].isRegular) {
-            totalRegularAllocPoint = totalRegularAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
+        if (_poolInfo[_pid].isRegular) {
+            totalRegularAllocPoint = totalRegularAllocPoint - _poolInfo[_pid].allocPoint + _allocPoint;
         } else {
-            totalSpecialAllocPoint = totalSpecialAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
+            totalSpecialAllocPoint = totalSpecialAllocPoint - _poolInfo[_pid].allocPoint + _allocPoint;
         }
-        poolInfo[_pid].allocPoint = _allocPoint;
+        _poolInfo[_pid].allocPoint = _allocPoint;
         emit SetPool(_pid, _allocPoint);
     }
 
@@ -231,7 +235,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     /// @param _pid The id of the pool. See `poolInfo`.
     /// @param _user Address of the user.
     function pendingWaya(uint256 _pid, address _user) external view returns (uint256) {
-        PoolInfo memory pool = poolInfo[_pid];
+        PoolInfo memory pool = _poolInfo[_pid];
         UserInfo memory user = userInfo[_pid][_user];
         uint256 accWayaPerShare = pool.accWayaPerShare;
         uint256 lpSupply = pool.totalBoostedShare;
@@ -251,9 +255,9 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
 
     /// @notice Update waya reward for all the active pools. Be careful of gas spending!
     function massUpdatePools() public {
-        uint256 length = poolInfo.length;
+        uint256 length = _poolInfo.length;
         for (uint256 pid = 0; pid < length; ++pid) {
-            PoolInfo memory pool = poolInfo[pid];
+            PoolInfo memory pool = _poolInfo[pid];
             if (pool.allocPoint != 0) {
                 updatePool(pid);
             }
@@ -274,7 +278,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     /// @param _pid The id of the pool. See `poolInfo`.
     /// @return pool Returns the pool that was updated.
     function updatePool(uint256 _pid) public returns (PoolInfo memory pool) {
-        pool = poolInfo[_pid];
+        pool = _poolInfo[_pid];
         if (block.number > pool.lastRewardBlock) {
             uint256 lpSupply = pool.totalBoostedShare;
             uint256 totalAllocPoint = (pool.isRegular ? totalRegularAllocPoint : totalSpecialAllocPoint);
@@ -286,7 +290,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
                 pool.accWayaPerShare = pool.accWayaPerShare + (((wayaReward * ACC_WAYA_PRECISION) / lpSupply));
             }
             pool.lastRewardBlock = block.number;
-            poolInfo[_pid] = pool;
+            _poolInfo[_pid] = pool;
             emit UpdatePool(_pid, pool.lastRewardBlock, lpSupply, pool.accWayaPerShare);
         }
     }
@@ -322,7 +326,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         user.rewardDebt = (((user.amount * multiplier) / BOOST_PRECISION) * pool.accWayaPerShare) / 
             ACC_WAYA_PRECISION;
 
-        poolInfo[_pid] = pool;
+        _poolInfo[_pid] = pool;
 
         emit Deposit(msg.sender, _pid, _amount);
     }
@@ -348,7 +352,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         user.rewardDebt = (((user.amount * multiplier) / BOOST_PRECISION) *pool.accWayaPerShare) / 
             ACC_WAYA_PRECISION;
 
-        poolInfo[_pid].totalBoostedShare = poolInfo[_pid].totalBoostedShare - (
+        _poolInfo[_pid].totalBoostedShare = _poolInfo[_pid].totalBoostedShare - (
             (_amount * multiplier) / BOOST_PRECISION
         );
 
@@ -363,7 +367,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     /// @notice Withdraw without caring about the rewards. EMERGENCY ONLY.
     /// @param _pid The id of the pool. See `poolInfo`.
     function emergencyWithdraw(uint256 _pid) external nonReentrant {
-        PoolInfo storage pool = poolInfo[_pid];
+        PoolInfo storage pool = _poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
 
         uint256 amount = user.amount;
@@ -383,12 +387,12 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         if (_withUpdate) {
             massUpdatePools();
         }
-        uint256 multiplier = block.number - lastBurnedBlock;
+        uint256 multiplier = block.number - lastAccruedBlock;
         uint256 pendingWayaToReserve = multiplier * ((TASK_MASTER.WayaPerBlock() * wayaRateToReserve) / WAYA_RATE_TOTAL_PRECISION);
 
         // SafeTransfer WAYA
         _safeTransfer(financialController, pendingWayaToReserve);
-        lastBurnedBlock = block.number;
+        lastAccruedBlock = block.number;
     }
 
     /// @notice Update the % of WAYA distributions for reserve, regular pools and special pools.
@@ -465,7 +469,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         uint256 _newMultiplier
     ) external onlyBoostContract nonReentrant {
         require(_user != address(0), "ChiefFarmer: The user address must be valid");
-        require(poolInfo[_pid].isRegular, "ChiefFarmer: Only regular farm could be boosted");
+        require(_poolInfo[_pid].isRegular, "ChiefFarmer: Only regular farm could be boosted");
         require(
             _newMultiplier >= BOOST_PRECISION && _newMultiplier <= MAX_BOOST_PRECISION,
             "ChiefFarmer: Invalid new boost multiplier"
@@ -483,7 +487,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         pool.totalBoostedShare = pool.totalBoostedShare - ((user.amount * prevMultiplier) / BOOST_PRECISION) + (
             (user.amount * _newMultiplier) / BOOST_PRECISION
         );
-        poolInfo[_pid] = pool;
+        _poolInfo[_pid] = pool;
         userInfo[_pid][_user].boostMultiplier = _newMultiplier;
 
         emit UpdateBoostMultiplier(_user, _pid, prevMultiplier, _newMultiplier);
@@ -509,7 +513,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         UserInfo memory user = userInfo[_pid][_user];
 
         uint256 boostedAmount = (user.amount * _boostMultiplier) / BOOST_PRECISION;
-        uint256 accWaya = (boostedAmount * poolInfo[_pid].accWayaPerShare) / ACC_WAYA_PRECISION;
+        uint256 accWaya = (boostedAmount * _poolInfo[_pid].accWayaPerShare) / ACC_WAYA_PRECISION;
         uint256 pending = accWaya - user.rewardDebt;
         // SafeTransfer WAYA
         _safeTransfer(_user, pending);
