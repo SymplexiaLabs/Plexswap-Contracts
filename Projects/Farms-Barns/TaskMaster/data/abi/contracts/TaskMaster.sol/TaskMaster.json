@@ -7,7 +7,7 @@
         "type": "address"
       },
       {
-        "internalType": "contract GayaBarn",
+        "internalType": "contract GayaToken",
         "name": "_gaya",
         "type": "address"
       },
@@ -29,6 +29,25 @@
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldMultiplierNumber",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newMultiplierNumber",
+        "type": "uint256"
+      }
+    ],
+    "name": "BonusMultiplierUpdate",
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -103,6 +122,25 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldWayaPerBlock",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newWayaPerBlock",
+        "type": "uint256"
+      }
+    ],
+    "name": "WayaPerBlockUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": true,
         "internalType": "address",
         "name": "user",
@@ -138,6 +176,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "WayaPerBlock",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -155,7 +206,7 @@
         "type": "bool"
       }
     ],
-    "name": "add",
+    "name": "addPool",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -235,7 +286,7 @@
     "name": "gaya",
     "outputs": [
       {
-        "internalType": "contract GayaBarn",
+        "internalType": "contract GayaToken",
         "name": "",
         "type": "address"
       }
@@ -379,29 +430,6 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_pid",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_allocPoint",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "_withUpdate",
-        "type": "bool"
-      }
-    ],
-    "name": "set",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "startBlock",
     "outputs": [
@@ -444,7 +472,30 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "multiplierNumber",
+        "name": "_pid",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_allocPoint",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "_withUpdate",
+        "type": "bool"
+      }
+    ],
+    "name": "updateAllocPoint",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_newMultiplierNumber",
         "type": "uint256"
       }
     ],
@@ -462,6 +513,19 @@
       }
     ],
     "name": "updatePool",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_newWayaPerBlock",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateWayaPerBlock",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -503,19 +567,6 @@
         "internalType": "contract WayaToken",
         "name": "",
         "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "wayaPerBlock",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
       }
     ],
     "stateMutability": "view",

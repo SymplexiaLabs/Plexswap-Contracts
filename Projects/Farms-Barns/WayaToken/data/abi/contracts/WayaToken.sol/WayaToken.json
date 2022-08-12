@@ -2,21 +2,6 @@
   {
     "inputs": [
       {
-        "internalType": "string",
-        "name": "_tokenName",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "_tokenSymbol",
-        "type": "string"
-      },
-      {
-        "internalType": "address",
-        "name": "_contractManager",
-        "type": "address"
-      },
-      {
         "internalType": "address",
         "name": "_taskMaster",
         "type": "address"
@@ -105,74 +90,18 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "uint8",
-        "name": "role",
-        "type": "uint8"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint8",
-        "name": "previousAdminRole",
-        "type": "uint8"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint8",
-        "name": "newAdminRole",
-        "type": "uint8"
-      }
-    ],
-    "name": "RoleAdminChanged",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint8",
-        "name": "role",
-        "type": "uint8"
-      },
-      {
-        "indexed": true,
         "internalType": "address",
-        "name": "account",
+        "name": "previousOwner",
         "type": "address"
       },
       {
         "indexed": true,
         "internalType": "address",
-        "name": "sender",
+        "name": "newOwner",
         "type": "address"
       }
     ],
-    "name": "RoleGranted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint8",
-        "name": "role",
-        "type": "uint8"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      }
-    ],
-    "name": "RoleRevoked",
+    "name": "OwnershipTransferred",
     "type": "event"
   },
   {
@@ -198,6 +127,31 @@
       }
     ],
     "name": "Transfer",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "authorizer",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "oldTaskmaster",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newTaskMaster",
+        "type": "address"
+      }
+    ],
+    "name": "taskMasterUpdated",
     "type": "event"
   },
   {
@@ -475,67 +429,6 @@
   {
     "inputs": [
       {
-        "internalType": "uint8",
-        "name": "role",
-        "type": "uint8"
-      }
-    ],
-    "name": "getRoleAdmin",
-    "outputs": [
-      {
-        "internalType": "uint8",
-        "name": "",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint8",
-        "name": "role",
-        "type": "uint8"
-      },
-      {
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "grantRole",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint8",
-        "name": "role",
-        "type": "uint8"
-      },
-      {
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "hasRole",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "address",
         "name": "spender",
         "type": "address"
@@ -627,19 +520,21 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint8",
-        "name": "role",
-        "type": "uint8"
-      },
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
       {
         "internalType": "address",
-        "name": "account",
+        "name": "",
         "type": "address"
       }
     ],
-    "name": "renounceRole",
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -647,17 +542,12 @@
   {
     "inputs": [
       {
-        "internalType": "uint8",
-        "name": "role",
-        "type": "uint8"
-      },
-      {
         "internalType": "address",
-        "name": "account",
+        "name": "_newTaskMaster",
         "type": "address"
       }
     ],
-    "name": "revokeRole",
+    "name": "setTaskMaster",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -670,6 +560,19 @@
         "internalType": "string",
         "name": "",
         "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "taskMaster",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -738,6 +641,19 @@
         "type": "bool"
       }
     ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   }

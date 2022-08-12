@@ -1,5 +1,18 @@
 [
   {
+    "inputs": [],
+    "name": "WayaPerBlock",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -69,7 +82,7 @@
         "type": "address"
       }
     ],
-    "name": "pendingCake",
+    "name": "pendingWaya",
     "outputs": [
       {
         "internalType": "uint256",
