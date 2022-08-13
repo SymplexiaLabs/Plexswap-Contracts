@@ -23,7 +23,7 @@ contract WayaVault is Ownable, Pausable {
         uint256 lockedAmount; // amount deposited during lock period.
     }
 
-    IERC20 public immutable token; // waya token.
+    IERC20 public immutable wayaToken; // waya token.
 
     IChiefFarmer public immutable ChiefFarmer;
 
@@ -39,7 +39,7 @@ contract WayaVault is Ownable, Pausable {
     address public ContractManager;
     address public FinancialController;
     address public TreasuryAnalyst;
-    uint256 public wayaPoolPID;         // Dummy Waya Pool PID
+    uint256 public dummyWayaPoolPID;         // dummyWayaPool (dWP) PID 
     uint256 public totalBoostDebt; // total boost debt.
     uint256 public totalLockedAmount; // total lock amount.
 
@@ -102,11 +102,11 @@ contract WayaVault is Ownable, Pausable {
     /**
      * @notice Constructor
      * @param _wayaAddress: Waya token contract
-     * @param _chieffarmer: MasterChefV2 contract
+     * @param _chieffarmer: ChiefFarmer contract
      * @param _contractManager: address of the ContractManager
      * @param _financialController: address of the FinancialController (collects fees)
      * @param _treasuryAnalyst: address of TreasuryAnalyst
-     * @param _wayaPoolPID: Waya pool ID in ChiefMaster
+     * @param _dummyWayaPoolPID: Waya pool ID in ChiefFarmer
      */
     constructor(
         IERC20 _wayaAddress,
@@ -114,14 +114,14 @@ contract WayaVault is Ownable, Pausable {
         address _contractManager,
         address _financialController,
         address _treasuryAnalyst,
-        uint256 _wayaPoolPID
+        uint256 _dummyWayaPoolPID
     ) {
-        token =  _wayaAddress;
+        wayaToken =  _wayaAddress;
         ChiefFarmer = _chieffarmer;
         ContractManager = _contractManager;
         FinancialController = _financialController;
         TreasuryAnalyst = _treasuryAnalyst;
-        wayaPoolPID = _wayaPoolPID;
+        dummyWayaPoolPID = _dummyWayaPoolPID;
     }
 
     /**
@@ -134,7 +134,7 @@ contract WayaVault is Ownable, Pausable {
         require(balance != 0, "Balance must exceed 0");
         dummyToken.safeTransferFrom(msg.sender, address(this), balance);
         dummyToken.approve(address(ChiefFarmer), balance);
-        ChiefFarmer.deposit(wayaPoolPID, balance);
+        ChiefFarmer.deposit(dummyWayaPoolPID, balance);
         emit Init();
     }
 
@@ -195,7 +195,7 @@ contract WayaVault is Ownable, Pausable {
                     // Rates are calculated based on the user's overdue duration.
                     uint256 overdueWeight = (overdueDuration * overdueFee) / DURATION_FACTOR_OVERDUE;
                     uint256 currentOverdueFee = (earnAmount * overdueWeight) / PRECISION_FACTOR;
-                    token.safeTransfer(FinancialController, currentOverdueFee);
+                    wayaToken.safeTransfer(FinancialController, currentOverdueFee);
                     currentAmount -= currentOverdueFee;
                 }
                 // Recalculate the user's share.
@@ -229,7 +229,7 @@ contract WayaVault is Ownable, Pausable {
                 }
                 uint256 currentPerformanceFee = (earnAmount * feeRate) / 10000;
                 if (currentPerformanceFee > 0) {
-                    token.safeTransfer(FinancialController, currentPerformanceFee);
+                    wayaToken.safeTransfer(FinancialController, currentPerformanceFee);
                     totalAmount -= currentPerformanceFee;
                 }
                 // Recalculate the user's share.
@@ -301,13 +301,13 @@ contract WayaVault is Ownable, Pausable {
             IVWaya(VWaya).deposit(_user, _amount, _lockDuration);
         }
 
-        // Harvest tokens from ChiefFarmer.
+        // Harvest Tokens from ChiefFarmer.
         harvest();
 
         // Handle stock funds.
         if (totalShares == 0) {
             uint256 stockAmount = available();
-            token.safeTransfer(FinancialController, stockAmount);
+            wayaToken.safeTransfer(FinancialController, stockAmount);
         }
         // Update user share.
         updateUserShare(_user);
@@ -328,7 +328,7 @@ contract WayaVault is Ownable, Pausable {
         uint256 userCurrentLockedBalance;
         uint256 pool = balanceOf();
         if (_amount > 0) {
-            token.safeTransferFrom(_user, address(this), _amount);
+            wayaToken.safeTransferFrom(_user, address(this), _amount);
             currentAmount = _amount;
         }
 
@@ -449,11 +449,11 @@ contract WayaVault is Ownable, Pausable {
                 feeRate = withdrawFeeContract;
             }
             uint256 currentWithdrawFee = (currentAmount * feeRate) / 10000;
-            token.safeTransfer(FinancialController, currentWithdrawFee);
+            wayaToken.safeTransfer(FinancialController, currentWithdrawFee);
             currentAmount -= currentWithdrawFee;
         }
 
-        token.safeTransfer(msg.sender, currentAmount);
+        wayaToken.safeTransfer(msg.sender, currentAmount);
 
         if (user.shares > 0) {
             user.wayaAtLastUserAction = (user.shares * balanceOf()) / totalShares;
@@ -480,10 +480,10 @@ contract WayaVault is Ownable, Pausable {
      * @notice Harvest pending WAYA tokens from MasterChef
      */
     function harvest() internal {
-        uint256 pendingWaya = ChiefFarmer.pendingWaya(wayaPoolPID, address(this));
+        uint256 pendingWaya = ChiefFarmer.pendingWaya(dummyWayaPoolPID, address(this));
         if (pendingWaya > 0) {
             uint256 balBefore = available();
-            ChiefFarmer.withdraw(wayaPoolPID, 0);
+            ChiefFarmer.withdraw(dummyWayaPoolPID, 0);
             uint256 balAfter = available();
             emit Harvest(msg.sender, (balAfter - balBefore));
         }
@@ -698,7 +698,7 @@ contract WayaVault is Ownable, Pausable {
      * @notice Withdraw unexpected tokens sent to the Waya Pool
      */
     function inCaseTokensGetStuck(address _token) external onlyContractManager {
-        require(_token != address(token), "Token cannot be same as deposit token");
+        require(_token != address(wayaToken), "Token cannot be same as deposit token");
 
         uint256 amount = IERC20(_token).balanceOf(address(this));
         IERC20(_token).safeTransfer(msg.sender, amount);
@@ -814,7 +814,7 @@ contract WayaVault is Ownable, Pausable {
      * @return Returns total pending waya rewards
      */
     function calculateTotalPendingWayaRewards() public view returns (uint256) {
-        uint256 amount = ChiefFarmer.pendingWaya(wayaPoolPID, address(this));
+        uint256 amount = ChiefFarmer.pendingWaya(dummyWayaPoolPID, address(this));
         return amount;
     }
 
@@ -827,7 +827,7 @@ contract WayaVault is Ownable, Pausable {
      * @dev The contract puts 100% of the tokens to work.
      */
     function available() public view returns (uint256) {
-        return token.balanceOf(address(this));
+        return wayaToken.balanceOf(address(this));
     }
 
     /**
@@ -835,7 +835,7 @@ contract WayaVault is Ownable, Pausable {
      * @dev It includes tokens held by the contract and the boost debt amount.
      */
     function balanceOf() public view returns (uint256) {
-        return token.balanceOf(address(this)) + totalBoostDebt;
+        return wayaToken.balanceOf(address(this)) + totalBoostDebt;
     }
 
     /**

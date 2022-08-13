@@ -7,23 +7,23 @@ import "./Ownable.sol";
 // WayaToken with Governance.
 contract WayaToken is ERC20, Ownable {
 
-    address public taskMaster;
-    event taskMasterUpdated  (address authorizer, address oldTaskmaster, address newTaskMaster);
+    address public chiefFarmer;
+    event chiefFarmerUpdated  (address authorizer, address oldChiefFarmer, address newChiefFarmer);
 
-    constructor (address _taskMaster) ERC20("PlexSwap Token", "WAYA") {
-           setTaskMaster(_taskMaster);
+    constructor (address _chiefFarmer) ERC20("PlexSwap Token", "WAYA") {
+           setChiefFarmer(_chiefFarmer);
     }
 
-    function setTaskMaster (address _newTaskMaster) public onlyOwner {
-        require(_newTaskMaster != address(0), "Cannot be zero address");
-        address oldTaskMaster = taskMaster;
-        taskMaster = _newTaskMaster;
-        emit taskMasterUpdated (_msgSender(), oldTaskMaster, taskMaster);
+    function setChiefFarmer (address _newChiefFarmer) public onlyOwner {
+        require(_newChiefFarmer != address(0), "Cannot be zero address");
+        address oldChiefFarmer = chiefFarmer;
+        chiefFarmer = _newChiefFarmer;
+        emit chiefFarmerUpdated (_msgSender(), oldChiefFarmer, chiefFarmer);
     }
 
-    /// @dev Creates `_amount` token to `_to`. Must only be called by the TaskMaster.
+    /// @dev Creates `_amount` token to `_to`. Must only be called by the ChiefFarmer.
     function mint(address _to, uint256 _amount) public {
-        require(_msgSender() == taskMaster, "Sender not authorized");
+        require(_msgSender() == chiefFarmer, "Sender not authorized");
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
