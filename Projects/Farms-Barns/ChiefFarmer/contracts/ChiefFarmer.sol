@@ -99,8 +99,8 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
 
     event Init();
     event AddPool(uint256 indexed pid, uint256 allocPoint, IERC20 indexed lpToken, bool isRegular);
-    event SetPool(uint256 indexed pid, uint256 allocPoint);
-    event UpdatePool(uint256 indexed pid, uint256 lastRewardBlock, uint256 lpSupply, uint256 accWayaPerShare);
+    event UpdatePoolParams(uint256 indexed pid, uint256 allocPoint);
+    event UpdatePoolReward(uint256 indexed pid, uint256 lastRewardBlock, uint256 lpSupply, uint256 accWayaPerShare);
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -151,8 +151,26 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         emit Init();
     }
 
-    function poolInfo(uint256 _pid) public view returns (IERC20, PoolInfo memory) {
-        return(lpToken[_pid],_poolInfo[_pid]);
+    struct PoolInfo {
+        uint256 accWayaPerShare;
+        uint256 lastRewardBlock;
+        uint256 allocPoint;
+        uint256 totalBoostedShare;
+        bool    isRegular;
+    }
+    
+    function poolInfo(uint256 _pid) public view returns (IERC20 _lpTokenAddress,
+                                                        uint256 _accWayaPerShare,
+                                                        uint256 _lastRewardBlock,
+                                                        uint256 _allocPoint,
+                                                        uint256 _totalBoostedShare,
+                                                        bool    _isRegular) {
+        _lpTokenAddress     =  lpToken[_pid];
+        _accWayaPerShare    =  _poolInfo[_pid].accWayaPerShare;
+        _lastRewardBlock    =  _poolInfo[_pid].lastRewardBlock;
+        _allocPoint         =  _poolInfo[_pid].allocPoint;
+        _totalBoostedShare  =  _poolInfo[_pid].totalBoostedShare;
+        _isRegular          =  _poolInfo[_pid].isRegular;
     }
     
     ///  @notice WAYAS per block in TaskMaster
@@ -170,8 +188,9 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     /// @param _allocPoint Number of allocation points for the new pool.
     /// @param _lpToken Address of the LP ERC-20 token.
     /// @param _isRegular Whether the pool is regular or special. LP farms are always "regular". "Special" pools are
-    /// @param _withUpdate Whether call "massUpdatePools" operation.
     /// only for WAYA distributions within PlexSwap products.
+    /// @param _withUpdate Whether call "massUpdatePools" operation.
+
     function addPool(
         uint256 _allocPoint,
         IERC20  _lpToken,
@@ -210,9 +229,10 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     /// @param _pid The id of the pool. See `poolInfo`.
     /// @param _allocPoint New number of allocation points for the pool.
     /// @param _withUpdate Whether call "massUpdatePools" operation.
-    function set(
+    function updatePoolParams(
         uint256 _pid,
         uint256 _allocPoint,
+        bool _isRegular,
         bool _withUpdate
     ) external onlyOwner {
         // No matter _withUpdate is true or false, we need to execute updatePool once before set the pool parameters.
@@ -223,12 +243,21 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         }
 
         if (_poolInfo[_pid].isRegular) {
-            totalRegularAllocPoint = totalRegularAllocPoint - _poolInfo[_pid].allocPoint + _allocPoint;
+            totalRegularAllocPoint = totalRegularAllocPoint - _poolInfo[_pid].allocPoint;
         } else {
-            totalSpecialAllocPoint = totalSpecialAllocPoint - _poolInfo[_pid].allocPoint + _allocPoint;
+            totalSpecialAllocPoint = totalSpecialAllocPoint - _poolInfo[_pid].allocPoint;
         }
+
+        if (_poolInfo[_pid]._isRegular) {
+            totalRegularAllocPoint = totalRegularAllocPoint + _allocPoint;
+        } else {
+            totalSpecialAllocPoint = totalSpecialAllocPoint + _allocPoint;
+        }
+
         _poolInfo[_pid].allocPoint = _allocPoint;
-        emit SetPool(_pid, _allocPoint);
+        -poolInfo[_pid].isRegular  = _isRegular;
+
+        emit UpdatePoolParams(_pid, _allocPoint, _isRegular);
     }
 
     /// @notice View function for checking pending WAYA rewards.
@@ -277,7 +306,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     /// @notice Update reward variables for the given pool.
     /// @param _pid The id of the pool. See `poolInfo`.
     /// @return pool Returns the pool that was updated.
-    function updatePool(uint256 _pid) public returns (PoolInfo memory pool) {
+    function updatePoolReward(uint256 _pid) public returns (PoolInfo memory pool) {
         pool = _poolInfo[_pid];
         if (block.number > pool.lastRewardBlock) {
             uint256 lpSupply = pool.totalBoostedShare;
@@ -291,7 +320,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
             }
             pool.lastRewardBlock = block.number;
             _poolInfo[_pid] = pool;
-            emit UpdatePool(_pid, pool.lastRewardBlock, lpSupply, pool.accWayaPerShare);
+            emit UpdatePoolReward(_pid, pool.lastRewardBlock, lpSupply, pool.accWayaPerShare);
         }
     }
 
