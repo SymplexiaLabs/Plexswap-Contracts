@@ -99,7 +99,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
 
     event Init();
     event AddPool(uint256 indexed pid, uint256 allocPoint, IERC20 indexed lpToken, bool isRegular);
-    event UpdatePoolParams(uint256 indexed pid, uint256 allocPoint);
+    event UpdatePoolParams(uint256 indexed pid, uint256 allocPoint, bool isRegular);
     event UpdatePoolReward(uint256 indexed pid, uint256 lastRewardBlock, uint256 lpSupply, uint256 accWayaPerShare);
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -151,14 +151,6 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         emit Init();
     }
 
-    struct PoolInfo {
-        uint256 accWayaPerShare;
-        uint256 lastRewardBlock;
-        uint256 allocPoint;
-        uint256 totalBoostedShare;
-        bool    isRegular;
-    }
-    
     function poolInfo(uint256 _pid) public view returns (IERC20 _lpTokenAddress,
                                                         uint256 _accWayaPerShare,
                                                         uint256 _lastRewardBlock,
@@ -236,7 +228,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         bool _withUpdate
     ) external onlyOwner {
         // No matter _withUpdate is true or false, we need to execute updatePool once before set the pool parameters.
-        updatePool(_pid);
+        updatePoolReward(_pid);
 
         if (_withUpdate) {
             massUpdatePools();
@@ -248,14 +240,14 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
             totalSpecialAllocPoint = totalSpecialAllocPoint - _poolInfo[_pid].allocPoint;
         }
 
-        if (_poolInfo[_pid]._isRegular) {
+        if (_isRegular) {
             totalRegularAllocPoint = totalRegularAllocPoint + _allocPoint;
         } else {
             totalSpecialAllocPoint = totalSpecialAllocPoint + _allocPoint;
         }
 
         _poolInfo[_pid].allocPoint = _allocPoint;
-        -poolInfo[_pid].isRegular  = _isRegular;
+        _poolInfo[_pid].isRegular  = _isRegular;
 
         emit UpdatePoolParams(_pid, _allocPoint, _isRegular);
     }
@@ -288,7 +280,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         for (uint256 pid = 0; pid < length; ++pid) {
             PoolInfo memory pool = _poolInfo[pid];
             if (pool.allocPoint != 0) {
-                updatePool(pid);
+                updatePoolReward(pid);
             }
         }
     }
@@ -328,7 +320,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     /// @param _pid The id of the pool. See `poolInfo`.
     /// @param _amount Amount of LP tokens to deposit.
     function deposit(uint256 _pid, uint256 _amount) external nonReentrant {
-        PoolInfo memory pool = updatePool(_pid);
+        PoolInfo memory pool = updatePoolReward(_pid);
         UserInfo storage user = userInfo[_pid][msg.sender];
 
         require(
@@ -364,7 +356,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     /// @param _pid The id of the pool. See `poolInfo`.
     /// @param _amount Amount of LP tokens to withdraw.
     function withdraw(uint256 _pid, uint256 _amount) external nonReentrant {
-        PoolInfo memory pool = updatePool(_pid);
+        PoolInfo memory pool = updatePoolReward(_pid);
         UserInfo storage user = userInfo[_pid][msg.sender];
 
         require(user.amount >= _amount, "withdraw: Insufficient");
@@ -504,7 +496,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
             "ChiefFarmer: Invalid new boost multiplier"
         );
 
-        PoolInfo memory pool = updatePool(_pid);
+        PoolInfo memory pool = updatePoolReward(_pid);
         UserInfo storage user = userInfo[_pid][_user];
 
         uint256 prevMultiplier = getBoostMultiplier(_user, _pid);

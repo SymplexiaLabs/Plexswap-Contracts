@@ -136,25 +136,6 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "uint256",
-        "name": "pid",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "allocPoint",
-        "type": "uint256"
-      }
-    ],
-    "name": "SetPool",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
         "internalType": "address",
         "name": "boostContract",
         "type": "address"
@@ -206,6 +187,31 @@
       {
         "indexed": false,
         "internalType": "uint256",
+        "name": "allocPoint",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "isRegular",
+        "type": "bool"
+      }
+    ],
+    "name": "UpdatePoolParams",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "pid",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
         "name": "lastRewardBlock",
         "type": "uint256"
       },
@@ -222,7 +228,7 @@
         "type": "uint256"
       }
     ],
-    "name": "UpdatePool",
+    "name": "UpdatePoolReward",
     "type": "event"
   },
   {
@@ -602,40 +608,33 @@
     "outputs": [
       {
         "internalType": "contract IERC20",
-        "name": "",
+        "name": "_lpTokenAddress",
         "type": "address"
       },
       {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "accWayaPerShare",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "lastRewardBlock",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "allocPoint",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "totalBoostedShare",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "isRegular",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct ChiefFarmer.PoolInfo",
-        "name": "",
-        "type": "tuple"
+        "internalType": "uint256",
+        "name": "_accWayaPerShare",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_lastRewardBlock",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_allocPoint",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_totalBoostedShare",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "_isRegular",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -670,29 +669,6 @@
       }
     ],
     "name": "reserveWaya",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_pid",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_allocPoint",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "_withUpdate",
-        "type": "bool"
-      }
-    ],
-    "name": "set",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -778,9 +754,37 @@
         "internalType": "uint256",
         "name": "_pid",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_allocPoint",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "_isRegular",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "_withUpdate",
+        "type": "bool"
       }
     ],
-    "name": "updatePool",
+    "name": "updatePoolParams",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_pid",
+        "type": "uint256"
+      }
+    ],
+    "name": "updatePoolReward",
     "outputs": [
       {
         "components": [
