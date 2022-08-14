@@ -34,7 +34,8 @@ contract WayaFlexibleVault is Ownable, Pausable {
     uint256 public constant MIN_WITHDRAW_AMOUNT = 0.00001 ether;
     uint256 public constant MIN_WITHDRAW_AMOUNT_BOOSTER = 10000; // 1
 
-    //When call wayavault.withdrawByAmount function,there will be a loss of precision, so need to withdraw more.
+    // When call wayavault.withdrawByAmount function,there will be a loss of precision, 
+    // so need to withdraw more.
     uint256 public withdrawAmountBooster = 10001; // 1.0001
     uint256 public performanceFee = 200; // 2%
     uint256 public withdrawFee = 10; // 0.1%
