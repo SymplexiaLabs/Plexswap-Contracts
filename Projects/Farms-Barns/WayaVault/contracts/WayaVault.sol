@@ -32,40 +32,40 @@ contract WayaVault is Ownable, Pausable {
 
     mapping(address => UserInfo) public userInfo;
     mapping(address => bool) public freePerformanceFeeUsers; // free performance fee users.
-    mapping(address => bool) public freeWithdrawFeeUsers; // free withdraw fee users.
-    mapping(address => bool) public freeOverdueFeeUsers; // free overdue fee users.
+    mapping(address => bool) public freeWithdrawFeeUsers;   // free withdraw fee users.
+    mapping(address => bool) public freeOverdueFeeUsers;    // free overdue fee users.
 
     uint256 public totalShares;
     address public ContractManager;
     address public FinancialController;
     address public TreasuryAnalyst;
-    uint256 public dummyWayaPoolPID;         // dummyWayaPool (dWP) PID 
-    uint256 public totalBoostDebt; // total boost debt.
-    uint256 public totalLockedAmount; // total lock amount.
+    uint256 public dummyWayaPoolPID;            // dummyWayaPool (dWP) PID 
+    uint256 public totalBoostDebt;              // total boost debt.
+    uint256 public totalLockedAmount;           // total lock amount.
 
-    uint256 public constant MAX_PERFORMANCE_FEE = 2000; // 20%
-    uint256 public constant MAX_WITHDRAW_FEE = 500; // 5%
-    uint256 public constant MAX_OVERDUE_FEE = 100 * 1e10; // 100%
-    uint256 public constant MAX_WITHDRAW_FEE_PERIOD = 1 weeks; // 1 week
-    uint256 public constant MIN_LOCK_DURATION = 1 weeks; // 1 week
-    uint256 public constant MAX_LOCK_DURATION_LIMIT = 1000 days; // 1000 days
-    uint256 public constant BOOST_WEIGHT_LIMIT = 5000 * 1e10; // 5000%
-    uint256 public constant PRECISION_FACTOR = 1e12; // precision factor.
-    uint256 public constant PRECISION_FACTOR_SHARE = 1e28; // precision factor for share.
+    uint256 public constant MAX_PERFORMANCE_FEE = 2000;             // 20%
+    uint256 public constant MAX_WITHDRAW_FEE = 500;                 // 5%
+    uint256 public constant MAX_OVERDUE_FEE = 100 * 1e10;           // 100%
+    uint256 public constant MAX_WITHDRAW_FEE_PERIOD = 1 weeks;      // 1 week
+    uint256 public constant MIN_LOCK_DURATION = 1 weeks;            // 1 week
+    uint256 public constant MAX_LOCK_DURATION_LIMIT = 1000 days;    // 1000 days
+    uint256 public constant BOOST_WEIGHT_LIMIT = 5000 * 1e10;       // 5000%
+    uint256 public constant PRECISION_FACTOR = 1e12;                // precision factor.
+    uint256 public constant PRECISION_FACTOR_SHARE = 1e28;          // precision factor for share.
     uint256 public constant MIN_DEPOSIT_AMOUNT = 0.00001 ether;
     uint256 public constant MIN_WITHDRAW_AMOUNT = 0.00001 ether;
-    uint256 public UNLOCK_FREE_DURATION = 1 weeks; // 1 week
-    uint256 public MAX_LOCK_DURATION = 365 days; // 365 days
-    uint256 public DURATION_FACTOR = 365 days; // 365 days, in order to calculate user additional boost.
-    uint256 public DURATION_FACTOR_OVERDUE = 180 days; // 180 days, in order to calculate overdue fee.
-    uint256 public BOOST_WEIGHT = 100 * 1e10; // 100%
+    uint256 public UNLOCK_FREE_DURATION = 1 weeks;                  // 1 week
+    uint256 public MAX_LOCK_DURATION = 365 days;                    // 365 days
+    uint256 public DURATION_FACTOR = 365 days;                      // 365 days, in order to calculate user additional boost.
+    uint256 public DURATION_FACTOR_OVERDUE = 180 days;              // 180 days, in order to calculate overdue fee.
+    uint256 public BOOST_WEIGHT = 100 * 1e10;                       // 100%
 
-    uint256 public performanceFee = 200; // 2%
-    uint256 public performanceFeeContract = 200; // 2%
-    uint256 public withdrawFee = 10; // 0.1%
-    uint256 public withdrawFeeContract = 10; // 0.1%
-    uint256 public overdueFee = 100 * 1e10; // 100%
-    uint256 public withdrawFeePeriod = 72 hours; // 3 days
+    uint256 public performanceFee = 200;                            // 2%
+    uint256 public performanceFeeContract = 200;                    // 2%
+    uint256 public withdrawFee = 10;                                // 0.1%
+    uint256 public withdrawFeeContract = 10;                        // 0.1%
+    uint256 public overdueFee = 100 * 1e10;                         // 100%
+    uint256 public withdrawFeePeriod = 72 hours;                    // 3 days
 
     event Deposit(address indexed sender, uint256 amount, uint256 shares, uint256 duration, uint256 lastDepositedTime);
     event Withdraw(address indexed sender, uint256 amount, uint256 shares);

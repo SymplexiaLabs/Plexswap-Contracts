@@ -6,14 +6,14 @@ import "./SafeERC20.sol";
 import "./Pausable.sol";
 import "./IWayaVault.sol";
 
-contract WayaHighVault is Ownable, Pausable {
+contract WayaFlexibleVault is Ownable, Pausable {
     using SafeERC20 for IERC20;
 
     struct UserInfo {
-        uint256 shares; // number of shares for a user
-        uint256 lastDepositedTime; // keeps track of deposited time for potential penalty
-        uint256 wayaAtLastUserAction; // keeps track of waya deposited at the last user action
-        uint256 lastUserActionTime; // keeps track of the last user action time
+        uint256 shares;                 // number of shares for a user
+        uint256 lastDepositedTime;      // keeps track of deposited time for potential penalty
+        uint256 wayaAtLastUserAction;   // keeps track of waya deposited at the last user action
+        uint256 lastUserActionTime;     // keeps track of the last user action time
     }
 
     IERC20 public immutable wayaToken; // Waya token
