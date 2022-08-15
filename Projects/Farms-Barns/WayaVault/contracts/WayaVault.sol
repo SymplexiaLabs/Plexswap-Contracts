@@ -23,7 +23,7 @@ contract WayaVault is Ownable, Pausable {
         uint256 lockedAmount; // amount deposited during lock period.
     }
 
-    IERC20 public immutable wayaToken; // waya token.
+    IERC20 private immutable wayaToken; // waya token.
 
     IChiefFarmer public immutable ChiefFarmer;
 
@@ -101,7 +101,6 @@ contract WayaVault is Ownable, Pausable {
 
     /**
      * @notice Constructor
-     * @param _wayaAddress: Waya token contract
      * @param _chieffarmer: ChiefFarmer contract
      * @param _contractManager: address of the ContractManager
      * @param _financialController: address of the FinancialController (collects fees)
@@ -109,14 +108,14 @@ contract WayaVault is Ownable, Pausable {
      * @param _dummyWayaPoolPID: Waya pool ID in ChiefFarmer
      */
     constructor(
-        IERC20 _wayaAddress,
+
         IChiefFarmer _chieffarmer,
         address _contractManager,
         address _financialController,
         address _treasuryAnalyst,
         uint256 _dummyWayaPoolPID
     ) {
-        wayaToken =  _wayaAddress;
+        wayaToken   = _chieffarmer.WayaAddress();
         ChiefFarmer = _chieffarmer;
         ContractManager = _contractManager;
         FinancialController = _financialController;
@@ -138,6 +137,9 @@ contract WayaVault is Ownable, Pausable {
         emit Init();
     }
 
+    function WayaAddress() external view returns (IERC20) {
+        return wayaToken;
+    }
     /**
      * @notice Checks if the msg.sender is the ContractManager address.
      */

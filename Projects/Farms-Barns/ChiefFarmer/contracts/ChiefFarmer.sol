@@ -5,7 +5,7 @@ import "./Ownable.sol";
 import "./ReentrancyGuard.sol";
 import "./IERC20.sol";
 import "./SafeERC20.sol";
-import "./ITaskMaster.sol";
+import "./WayaToken.sol";
 
 
 /// @notice The idea for this ChiefFarmer (CF) contract is to be the owner of a dummy token
@@ -28,6 +28,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     ///   2. User receives the pending reward sent to his/her address.
     ///   3. User's `amount` gets updated. Pool's `totalBoostedShare` gets updated.
     ///   4. User's `rewardDebt` gets updated.
+
     struct UserInfo {
         uint256 amount;
         uint256 rewardDebt;
@@ -45,7 +46,8 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     ///     `allocPoint` and their own `totalSpecialAllocPoint` are designed to handle the distribution of
     ///     the WAYA rewards to all the PlexSwap products.
     /// `totalBoostedShare` The total amount of user shares in each pool. After considering the share boosts.
-    struct PoolInfo {
+    
+   struct PoolInfo {
         uint256 accWayaPerShare;
         uint256 lastRewardBlock;
         uint256 allocPoint;
@@ -53,51 +55,64 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         bool    isRegular;
     }
 
-    /// @notice Address of TaskMaster contract.
-    ITaskMaster public immutable TASK_MASTER;
-    /// @notice Address of WAYA contract.
-    IERC20 public immutable WAYA;
-
     /// @notice The only address can withdraw all the WAYA Reserves.
     address public financialController;
+
     /// @notice The contract handles the share boosts.
     address public boostContract;
 
     /// @notice Info of each ChiefFarmer pool.
     PoolInfo[] private _poolInfo;
+
     /// @notice Address of the LP token for each CF pool.
     IERC20[] private lpToken;
 
     /// @notice Info of each pool user.
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
+
     /// @notice The whitelist of addresses allowed to deposit in special pools.
     mapping(address => bool) public whiteList;
 
-    /// @notice The pool id of the CF mock (dummyCF) token pool in TM.
-    uint256 public immutable DUMMYPOOL_PID;
     /// @notice Total regular allocation points. Must be the sum of all regular pools' allocation points.
     uint256 public totalRegularAllocPoint;
+
     /// @notice Total special allocation points. Must be the sum of all special pools' allocation points.
     uint256 public totalSpecialAllocPoint;
+
     uint256 public constant ACC_WAYA_PRECISION = 1e18;
 
     /// @notice Basic boost factor, none boosted user's boost factor
     uint256 public constant BOOST_PRECISION = 100 * 1e10;
+
     /// @notice Hard limit for maxmium boost factor, it must greater than BOOST_PRECISION
     uint256 public constant MAX_BOOST_PRECISION = 200 * 1e10;
+
     /// @notice total waya rate = toReserve + toRegular + toSpecial
     uint256 public constant WAYA_RATE_TOTAL_PRECISION = 1e12;
+
     /// @notice The last block number of WAYA reserve action being executed.
+
     /// @notice WAYA distribute % for reserve
     uint256 public wayaRateToReserve = 25750000000;
+
     /// @notice WAYA distribute % for regular farm pool
     uint256 public wayaRateToRegularFarm = 175365000000;
+
     /// @notice WAYA distribute % for special pools
     uint256 public wayaRateToSpecialFarm = 798885000000;
 
+    //-------------------------------- The Beginning of Heaven  ---------------------
+    // The WAYA TOKEN!
+    WayaToken private immutable waya;
+
+    // WAYA tokens created per block.
+    uint256 public wayaPerBlock;
+
+   //------------------------------------------------------------------------------------------
+
     uint256 public lastAccruedBlock;
 
-    event Init();
+
     event AddPool(uint256 indexed pid, uint256 allocPoint, IERC20 indexed lpToken, bool isRegular);
     event UpdatePoolParams(uint256 indexed pid, uint256 allocPoint, bool isRegular);
     event UpdatePoolReward(uint256 indexed pid, uint256 lastRewardBlock, uint256 lpSupply, uint256 accWayaPerShare);
@@ -110,23 +125,19 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     event UpdateWhiteList(address indexed user, bool isValid);
     event UpdateBoostContract(address indexed boostContract);
     event UpdateBoostMultiplier(address indexed user, uint256 pid, uint256 oldMultiplier, uint256 newMultiplier);
+    event WayaPerBlockUpdated (uint256 oldWayaPerBlock, uint256 newWayaPerBlock);
 
-    /// @param _TASK_MASTER 	    - The PlexSwap TM contract address.
-    /// @param _WAYA 		        - The WAYA token contract address.
-    /// @param _DUMMYPOOL_PID 	    - The pool id of the dummy pool on the TaskMaster.
-    /// @param _financialController - The address of Financial Controller.
+
     constructor(
-        ITaskMaster _TASK_MASTER,
-        IERC20 _WAYA,
-        uint256 _DUMMYPOOL_PID,
+        WayaToken _waya,
+        uint256 _wayaEmissionPerBlock,
         address _financialController
     ) {
-        TASK_MASTER = _TASK_MASTER;
-        WAYA = _WAYA;
-        DUMMYPOOL_PID = _DUMMYPOOL_PID;
+        waya = _waya;
+        wayaPerBlock = _wayaEmissionPerBlock * (1e18);
         financialController = _financialController;
     }
-
+ 
     /**
      * @dev Throws if caller is not the boost contract.
      */
@@ -135,23 +146,11 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         _;
     }
 
-    /// @notice Deposits a dummy token to `TASK_MASTER` TM. 
-    /// This is required because TM holds the minting permission of WAYA.
-    /// It will transfer all the `dummyToken` in the tx sender address.
-    /// The allocation point for the dummy pool on TM should be equal to the total amount of allocPoint.
-    /// @param dummyToken The address of the ERC-20 token to be deposited into TM.
-    function init(IERC20 dummyToken) external onlyOwner {
-        uint256 balance = dummyToken.balanceOf(msg.sender);
-        require(balance != 0, "ChiefFarmer: Balance must exceed 0");
-        dummyToken.safeTransferFrom(msg.sender, address(this), balance);
-        dummyToken.approve(address(TASK_MASTER), balance);
-        TASK_MASTER.deposit(DUMMYPOOL_PID, balance);
-        // CF start to earn WAYA reward from current block in TM pool
-        lastAccruedBlock = block.number;
-        emit Init();
+    function WayaAddress() external view returns (WayaToken) {
+        return waya;
     }
 
-    function poolInfo(uint256 _pid) public view returns (IERC20 _lpTokenAddress,
+    function poolInfo(uint256 _pid) external view returns (IERC20 _lpTokenAddress,
                                                         uint256 _accWayaPerShare,
                                                         uint256 _lastRewardBlock,
                                                         uint256 _allocPoint,
@@ -165,18 +164,25 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         _isRegular          =  _poolInfo[_pid].isRegular;
     }
     
-    ///  @notice WAYAS per block in TaskMaster
-    function wayaPerBlock() public view returns (uint256) {
-        return TASK_MASTER.WayaPerBlock();
+     /// @notice Updates WAYA emission.
+    function updateWayaPerBlock(uint256 _newWayaPerBlock) public onlyOwner {
+        uint256 _oldWayaPerBlock = wayaPerBlock;
+        wayaPerBlock = _newWayaPerBlock * (1e18);
+        emit WayaPerBlockUpdated(_oldWayaPerBlock, _newWayaPerBlock);
     }
-
     /// @notice Returns the number of CF pools.
     function poolLength() public view returns (uint256 pools) {
         pools = _poolInfo.length;
     }
 
+    function isPoolRegistered (IERC20 _newPool) public view returns (bool) {
+        for (uint256 i=0; i < _poolInfo.length; i++){
+            if (lpToken[i] == _newPool) return true;
+        }
+        return  false;                 
+    }
+
     /// @notice Add a new pool. Can only be called by the owner.
-    /// DO NOT add the same LP token more than once. Rewards will be messed up if you do.
     /// @param _allocPoint Number of allocation points for the new pool.
     /// @param _lpToken Address of the LP ERC-20 token.
     /// @param _isRegular Whether the pool is regular or special. LP farms are always "regular". "Special" pools are
@@ -189,10 +195,12 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         bool    _isRegular,
         bool    _withUpdate
     ) external onlyOwner {
+        require( !isPoolRegistered(_lpToken), "Pool already registered");
         require(_lpToken.balanceOf(address(this)) >= 0, "None ERC20 tokens");
+
         // stake WAYA token will cause staked token and reward token mixed up,
         // may cause staked tokens withdraw as reward token,never do it.
-        require(_lpToken != WAYA, "WAYA token can't be added to farm pools");
+        require(_lpToken != waya, "WAYA token can't be added to farm pools");
 
         if (_withUpdate) {
             massUpdatePools();
@@ -203,6 +211,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         } else {
             totalSpecialAllocPoint = totalSpecialAllocPoint + _allocPoint;
         }
+
         lpToken.push(_lpToken);
 
         _poolInfo.push(
@@ -217,9 +226,10 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         emit AddPool(lpToken.length - 1, _allocPoint, _lpToken, _isRegular);
     }
 
-    /// @notice Update the given pool's WAYA allocation point. Can only be called by the owner.
+    /// @notice  Update the given pool's WAYA allocation point. Can only be called by the owner.
     /// @param _pid The id of the pool. See `poolInfo`.
     /// @param _allocPoint New number of allocation points for the pool.
+    /// @param _isRegular Whether pool is "regular" or "special".
     /// @param _withUpdate Whether call "massUpdatePools" operation.
     function updatePoolParams(
         uint256 _pid,
@@ -227,7 +237,8 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         bool _isRegular,
         bool _withUpdate
     ) external onlyOwner {
-        // No matter _withUpdate is true or false, we need to execute updatePool once before set the pool parameters.
+        // No matter _withUpdate is true or false, 
+       //  it´s necessary  to execute updatePool once before set the pool parameters.
         updatePoolReward(_pid);
 
         if (_withUpdate) {
@@ -264,7 +275,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = block.number - pool.lastRewardBlock;
 
-            uint256 wayaReward = (multiplier * (_wayaPerBlock(pool.isRegular)) * (pool.allocPoint)) / (
+            uint256 wayaReward = (multiplier * (_wayaPerBlockFarm(pool.isRegular)) * (pool.allocPoint)) / (
                 (pool.isRegular ? totalRegularAllocPoint : totalSpecialAllocPoint)
             );
             accWayaPerShare = accWayaPerShare + ((wayaReward *(ACC_WAYA_PRECISION)) / lpSupply);
@@ -285,17 +296,17 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         }
     }
  
-    /// @notice Calculates and returns the `amount` of WAYA per block.
+    /// @notice Calculates and returns the `amount` of WAYA per block, depending on type of Farm.
     /// @param _isRegular If the pool belongs to regular or special.
-    function _wayaPerBlock(bool _isRegular) internal view returns (uint256 amount) {
+    function _wayaPerBlockFarm(bool _isRegular) internal view returns (uint256 amount) {
         if (_isRegular) {
-            amount = (TASK_MASTER.WayaPerBlock() * wayaRateToRegularFarm) / WAYA_RATE_TOTAL_PRECISION;
+            amount = (wayaPerBlock * wayaRateToRegularFarm) / WAYA_RATE_TOTAL_PRECISION;
         } else {
-            amount = (TASK_MASTER.WayaPerBlock() * wayaRateToSpecialFarm) / WAYA_RATE_TOTAL_PRECISION;
+            amount = (wayaPerBlock * wayaRateToSpecialFarm) / WAYA_RATE_TOTAL_PRECISION;
         }
     }
 
-    /// @notice Update reward variables for the given pool.
+    /// @notice UPDATE reward variables for the given pool.
     /// @param _pid The id of the pool. See `poolInfo`.
     /// @return pool Returns the pool that was updated.
     function updatePoolReward(uint256 _pid) public returns (PoolInfo memory pool) {
@@ -306,9 +317,9 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
 
             if (lpSupply > 0 && totalAllocPoint > 0) {
                 uint256 multiplier = block.number - pool.lastRewardBlock;
-                uint256 wayaReward = (multiplier * _wayaPerBlock(pool.isRegular) * pool.allocPoint) / 
-                    totalAllocPoint;
-                pool.accWayaPerShare = pool.accWayaPerShare + (((wayaReward * ACC_WAYA_PRECISION) / lpSupply));
+                uint256 wayaReward = (multiplier * _wayaPerBlockFarm(pool.isRegular) * pool.allocPoint) /  totalAllocPoint;
+                waya.mint(address(this), wayaReward);
+	pool.accWayaPerShare = pool.accWayaPerShare + (((wayaReward * ACC_WAYA_PRECISION) / lpSupply));
             }
             pool.lastRewardBlock = block.number;
             _poolInfo[_pid] = pool;
@@ -316,7 +327,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         }
     }
 
-    /// @notice Deposit LP tokens to pool.
+    /// @notice DEPOSIT LP tokens to pool.
     /// @param _pid The id of the pool. See `poolInfo`.
     /// @param _amount Amount of LP tokens to deposit.
     function deposit(uint256 _pid, uint256 _amount) external nonReentrant {
@@ -370,19 +381,13 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
             lpToken[_pid].safeTransfer(msg.sender, _amount);
         }
 
-        user.rewardDebt = (((user.amount * multiplier) / BOOST_PRECISION) *pool.accWayaPerShare) / 
-            ACC_WAYA_PRECISION;
+        user.rewardDebt = (((user.amount * multiplier) / BOOST_PRECISION) *pool.accWayaPerShare) / ACC_WAYA_PRECISION;
 
         _poolInfo[_pid].totalBoostedShare = _poolInfo[_pid].totalBoostedShare - (
             (_amount * multiplier) / BOOST_PRECISION
         );
 
         emit Withdraw(msg.sender, _pid, _amount);
-    }
-
-    /// @notice Harvests WAYA from `TASK_MASTER` TM and pool `DUMMYPOOL_PID` to CF.
-    function harvestFromTaskMaster() public {
-        TASK_MASTER.deposit(DUMMYPOOL_PID, 0);
     }
 
     /// @notice Withdraw without caring about the rewards. EMERGENCY ONLY.
@@ -409,10 +414,10 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
             massUpdatePools();
         }
         uint256 multiplier = block.number - lastAccruedBlock;
-        uint256 pendingWayaToReserve = multiplier * ((TASK_MASTER.WayaPerBlock() * wayaRateToReserve) / WAYA_RATE_TOTAL_PRECISION);
+        uint256 pendingWayaToReserve = multiplier * ((wayaPerBlock * wayaRateToReserve) / WAYA_RATE_TOTAL_PRECISION);
 
         // SafeTransfer WAYA
-        _safeTransfer(financialController, pendingWayaToReserve);
+        _safeWayaTransfer(financialController, pendingWayaToReserve);
         lastAccruedBlock = block.number;
     }
 
@@ -536,24 +541,19 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         uint256 boostedAmount = (user.amount * _boostMultiplier) / BOOST_PRECISION;
         uint256 accWaya = (boostedAmount * _poolInfo[_pid].accWayaPerShare) / ACC_WAYA_PRECISION;
         uint256 pending = accWaya - user.rewardDebt;
+
         // SafeTransfer WAYA
-        _safeTransfer(_user, pending);
+        _safeWayaTransfer(_user, pending);
     }
 
     /// @notice Safe Transfer WAYA.
     /// @param _to The WAYA receiver address.
     /// @param _amount transfer WAYA amounts.
-    function _safeTransfer(address _to, uint256 _amount) internal {
+    function _safeWayaTransfer(address _to, uint256 _amount) internal {
         if (_amount > 0) {
-            // Check whether CF has enough WAYA. If not, harvest from TM.
-            if (WAYA.balanceOf(address(this)) < _amount) {
-                harvestFromTaskMaster();
-            }
-            uint256 balance = WAYA.balanceOf(address(this));
-            if (balance < _amount) {
-                _amount = balance;
-            }
-            WAYA.safeTransfer(_to, _amount);
+           uint256 wayaBalance = waya.balanceOf(address(this));
+           _amount = (_amount > wayaBalance ? wayaBalance : _amount); 
+           waya.transfer(_to, _amount);
         }
     }
 }

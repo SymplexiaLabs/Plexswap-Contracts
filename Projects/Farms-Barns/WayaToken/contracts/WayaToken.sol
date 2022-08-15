@@ -10,9 +10,7 @@ contract WayaToken is ERC20, Ownable {
     address public chiefFarmer;
     event chiefFarmerUpdated  (address authorizer, address oldChiefFarmer, address newChiefFarmer);
 
-    constructor (address _chiefFarmer) ERC20("PlexSwap Token", "WAYA") {
-           setChiefFarmer(_chiefFarmer);
-    }
+    constructor () ERC20("PlexSwap Token", "WAYA") { }
 
     function setChiefFarmer (address _newChiefFarmer) public onlyOwner {
         require(_newChiefFarmer != address(0), "Cannot be zero address");
@@ -23,6 +21,7 @@ contract WayaToken is ERC20, Ownable {
 
     /// @dev Creates `_amount` token to `_to`. Must only be called by the ChiefFarmer.
     function mint(address _to, uint256 _amount) public {
+        require(chiefFarmer != address(0), "ChiefFarmer cannot be zero address");
         require(_msgSender() == chiefFarmer, "Sender not authorized");
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);

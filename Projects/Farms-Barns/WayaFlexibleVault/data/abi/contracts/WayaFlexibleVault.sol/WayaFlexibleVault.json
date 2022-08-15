@@ -2,11 +2,6 @@
   {
     "inputs": [
       {
-        "internalType": "contract IERC20",
-        "name": "_wayaToken",
-        "type": "address"
-      },
-      {
         "internalType": "contract IWayaVault",
         "name": "_wayaVault",
         "type": "address"

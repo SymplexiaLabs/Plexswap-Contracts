@@ -2,11 +2,6 @@
   {
     "inputs": [
       {
-        "internalType": "contract IERC20",
-        "name": "_wayaAddress",
-        "type": "address"
-      },
-      {
         "internalType": "contract IChiefFarmer",
         "name": "_chieffarmer",
         "type": "address"
@@ -743,6 +738,19 @@
   },
   {
     "inputs": [],
+    "name": "WayaAddress",
+    "outputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "available",
     "outputs": [
       {
@@ -1449,19 +1457,6 @@
         "internalType": "uint256",
         "name": "lockedAmount",
         "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "wayaToken",
-    "outputs": [
-      {
-        "internalType": "contract IERC20",
-        "name": "",
-        "type": "address"
       }
     ],
     "stateMutability": "view",

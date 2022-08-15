@@ -56,24 +56,22 @@ contract WayaFlexibleVault is Ownable, Pausable {
 
     /**
      * @notice Constructor
-     * @param _wayaToken: Waya token contract
      * @param _wayaVault: WayaVault contract
      * @param _ContractManager: address of the ContractManager
      * @param _FinancialController: address of the FinancialController (collects fees)
      */
     constructor(
-        IERC20 _wayaToken,
         IWayaVault _wayaVault,
         address _ContractManager,
         address _FinancialController
     ) {
-        wayaToken = _wayaToken;
         wayaVault = _wayaVault;
+        wayaToken = _wayaVault.WayaAddress();
         ContractManager = _ContractManager;
         FinancialController = _FinancialController;
 
         // Infinite approve
-        IERC20(_wayaToken).safeApprove(address(_wayaVault), type(uint256).max);
+        IERC20(wayaToken).safeApprove(address(_wayaVault), type(uint256).max);
     }
 
     /**

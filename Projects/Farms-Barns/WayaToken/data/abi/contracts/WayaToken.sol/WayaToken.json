@@ -1,12 +1,6 @@
 [
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_taskMaster",
-        "type": "address"
-      }
-    ],
+    "inputs": [],
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
@@ -141,17 +135,17 @@
       {
         "indexed": false,
         "internalType": "address",
-        "name": "oldTaskmaster",
+        "name": "oldChiefFarmer",
         "type": "address"
       },
       {
         "indexed": false,
         "internalType": "address",
-        "name": "newTaskMaster",
+        "name": "newChiefFarmer",
         "type": "address"
       }
     ],
-    "name": "taskMasterUpdated",
+    "name": "chiefFarmerUpdated",
     "type": "event"
   },
   {
@@ -271,6 +265,19 @@
         "internalType": "uint256",
         "name": "votes",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "chiefFarmer",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -543,11 +550,11 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_newTaskMaster",
+        "name": "_newChiefFarmer",
         "type": "address"
       }
     ],
-    "name": "setTaskMaster",
+    "name": "setChiefFarmer",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -560,19 +567,6 @@
         "internalType": "string",
         "name": "",
         "type": "string"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "taskMaster",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
       }
     ],
     "stateMutability": "view",
