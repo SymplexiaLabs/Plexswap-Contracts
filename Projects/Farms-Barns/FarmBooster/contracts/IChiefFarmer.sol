@@ -13,7 +13,7 @@ interface IChiefFarmer {
     function userInfo(uint256 _pid, address _user)
         external
         view
-        returns (
+        returns ( 
             uint256,
             uint256,
             uint256
