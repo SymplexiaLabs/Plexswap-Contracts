@@ -70,27 +70,27 @@ contract FarmBooster is Ownable {
     );
 
     /// @param _waya WAYA token contract address.
-    /// @param _wayaPool Waya Pool contract address.
-    /// @param _CFarmer ChiefFarmer contract address.
-    /// @param _max Maximum allowed boosted farm  quantity
+    /// @param _wayaVault Waya Vault contract address.
+    /// @param _ChiefFarmer ChiefFarmer contract address.
+    /// @param _maxBoostedFarm Maximum allowed boosted farm  quantity
     /// @param _lMaxBoost Limit max boost
     /// @param _ControlD Controls difficulties
     constructor(
         address _waya,
-        address _wayaPool,
-        address _CFarmer,
-        uint256 _max,
+        address _wayaVault,
+        address _ChiefFarmer,
+        uint256 _maxBoostedFarm,
         uint256 _lMaxBoost,
         uint256 _ControlD
     ) {
         require(
-            _max > 0 && _lMaxBoost >= MIN_LMB&& _lMaxBoost <= MAX_LMB&& _ControlD > MIN_CD && _ControlD <= MAX_CD,
+            _maxBoostedFarm > 0 && _lMaxBoost >= MIN_LMB&& _lMaxBoost <= MAX_LMB&& _ControlD > MIN_CD && _ControlD <= MAX_CD,
             "constructor: Invalid parameter"
         );
         WAYA = _waya;
-        WAYA_VAULT = _wayaPool;
-        CHIEF_FARMER = _CFarmer;
-        MAX_BOOST_FARM_QTD = _max;
+        WAYA_VAULT = _wayaVault;
+        CHIEF_FARMER = _ChiefFarmer;
+        MAX_BOOST_FARM_QTD = _maxBoostedFarm;
         lMaxBoost = _lMaxBoost;
         controlsDifficulties = _ControlD;
     }
