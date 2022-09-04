@@ -23,7 +23,7 @@ contract WayaVault is Ownable, Pausable {
         uint256 lockedAmount; // amount deposited during lock period.
     }
 
-    IERC20 private immutable wayaToken; // waya token.
+    IERC20 public immutable wayaToken; // waya token.
 
     IChiefFarmer public immutable ChiefFarmer;
 
@@ -35,13 +35,13 @@ contract WayaVault is Ownable, Pausable {
     mapping(address => bool) public freeWithdrawFeeUsers;   // free withdraw fee users.
     mapping(address => bool) public freeOverdueFeeUsers;    // free overdue fee users.
 
-    uint256 public totalShares;
-    address public ContractManager;
-    address public FinancialController;
-    address public TreasuryAnalyst;
-    uint256 public dummyWayaPoolPID;            // dummyWayaPool (dWP) PID 
-    uint256 public totalBoostDebt;              // total boost debt.
-    uint256 public totalLockedAmount;           // total lock amount.
+    uint256 public  totalShares;
+    address public  ContractManager;
+    address public  FinancialController;
+    address public  TreasuryAnalyst;
+    uint256 public  totalBoostDebt;                  // total boost debt.
+    uint256 public  totalLockedAmount;               // total lock amount.
+    uint256 private dummyWayaPoolPID = 1;            // dummyWayaPool (dWP) PID in ChiefFarmer
 
     uint256 public constant MAX_PERFORMANCE_FEE = 2000;             // 20%
     uint256 public constant MAX_WITHDRAW_FEE = 500;                 // 5%
@@ -105,22 +105,20 @@ contract WayaVault is Ownable, Pausable {
      * @param _contractManager: address of the ContractManager
      * @param _financialController: address of the FinancialController (collects fees)
      * @param _treasuryAnalyst: address of TreasuryAnalyst
-     * @param _dummyWayaPoolPID: Waya pool ID in ChiefFarmer
      */
     constructor(
 
         IChiefFarmer _chieffarmer,
+        IERC20  _wayaToken,
         address _contractManager,
         address _financialController,
-        address _treasuryAnalyst,
-        uint256 _dummyWayaPoolPID
+        address _treasuryAnalyst
     ) {
-        wayaToken   = _chieffarmer.WayaAddress();
+        wayaToken   = _wayaToken;
         ChiefFarmer = _chieffarmer;
         ContractManager = _contractManager;
         FinancialController = _financialController;
         TreasuryAnalyst = _treasuryAnalyst;
-        dummyWayaPoolPID = _dummyWayaPoolPID;
     }
 
     /**

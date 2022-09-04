@@ -13,7 +13,5 @@ interface IChiefFarmer {
 
     function userInfo(uint256 _pid, address _user) external view returns (uint256, uint256);
 
-    function WayaAddress() external view returns (IERC20);
-
     function emergencyWithdraw(uint256 _pid) external;
 }
