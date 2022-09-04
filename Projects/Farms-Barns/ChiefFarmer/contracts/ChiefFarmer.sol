@@ -8,13 +8,14 @@ import "./SafeERC20.sol";
 import "./WayaToken.sol";
 
 
-/// @notice The idea for this ChiefFarmer (CF) contract is to be the owner of a dummy token
+/// @notice The idea for this MasterChef (CF) contract is to be the owner of a dummy token
 /// that is deposited into the TaskMaster (TM) contract.
 /// The allocation point for this pool on TM is the total allocation point for all pools that receive incentives.
 contract ChiefFarmer is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
+    using SafeERC20 for WayaToken;
 
-    /// @notice Info of each ChiefFarmer user.
+    /// @notice Info of each MasterChef user.
     /// `amount` LP token amount the user has provided.
     /// `rewardDebt` Used to calculate the correct amount of rewards. See explanation below.
     ///
@@ -35,7 +36,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         uint256 boostMultiplier;
     }
 
-    /// @notice Info of each ChiefFarmer pool.
+    /// @notice Info of each MasterChef pool.
     /// `allocPoint` The amount of allocation points assigned to the pool.
     ///     Also known as the amount of "multipliers". Combined with `totalXAllocPoint`, it defines the % of
     ///     WAYA rewards each pool gets.
@@ -61,7 +62,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     /// @notice The contract handles the share boosts.
     address public boostContract;
 
-    /// @notice Info of each ChiefFarmer pool.
+    /// @notice Info of each MasterChef pool.
     PoolInfo[] public poolInfo;
 
     /// @notice Address of the LP token for each CF pool.
@@ -103,10 +104,10 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
 
     //-------------------------------- The Beginning of Heaven  ---------------------
     // The WAYA TOKEN!
-    WayaToken private immutable waya;
+    WayaToken public immutable WAYA;
 
     // WAYA tokens created per block.
-    uint256 public wayaPerBlock;
+    uint256 public emissionPerBlock;
 
    //------------------------------------------------------------------------------------------
 
@@ -119,22 +120,21 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
-
     event UpdateWayaRate(uint256 reserveRate, uint256 regularFarmRate, uint256 specialFarmRate);
     event UpdatefinancialController(address indexed oldAdmin, address indexed newAdmin);
     event UpdateWhiteList(address indexed user, bool isValid);
     event UpdateBoostContract(address indexed boostContract);
     event UpdateBoostMultiplier(address indexed user, uint256 pid, uint256 oldMultiplier, uint256 newMultiplier);
-    event WayaPerBlockUpdated (uint256 oldWayaPerBlock, uint256 newWayaPerBlock);
+    event EmissionPerBlockUpdated (uint256 oldEmissionPerBlock, uint256 newEmissionPerBlock);
 
 
     constructor(
-        WayaToken _waya,
-        uint256 _wayaEmissionPerBlock,
+        WayaToken _wayaAddress,
+        uint256 _emissionPerBlock,
         address _financialController
     ) {
-        waya = _waya;
-        wayaPerBlock = _wayaEmissionPerBlock * (1e18);
+        WAYA = _wayaAddress;
+        emissionPerBlock = _emissionPerBlock * (1e18);
         financialController = _financialController;
     }
  
@@ -146,20 +146,16 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         _;
     }
 
-    function WayaAddress() external view returns (WayaToken) {
-        return waya;
-    }
-
     function linkedPoolInfo(uint256 _pid) external view returns (IERC20 _lpTokenAddress, PoolInfo memory _poolInfo) {
         _lpTokenAddress     =  lpToken[_pid];
         _poolInfo           =  poolInfo[_pid];
     }
     
      /// @notice Updates WAYA emission.
-    function updateWayaPerBlock(uint256 _newWayaPerBlock) public onlyOwner {
-        uint256 _oldWayaPerBlock = wayaPerBlock;
-        wayaPerBlock = _newWayaPerBlock * (1e18);
-        emit WayaPerBlockUpdated(_oldWayaPerBlock, _newWayaPerBlock);
+    function updateEmissionPerBlock(uint256 _newEmissionPerBlock) public onlyOwner {
+        uint256 _oldWayaPerBlock = emissionPerBlock;
+        emissionPerBlock = _newEmissionPerBlock * (1e18);
+        emit EmissionPerBlockUpdated(_oldWayaPerBlock, _newEmissionPerBlock);
     }
     /// @notice Returns the number of CF pools.
     function poolLength() public view returns (uint256 pools) {
@@ -191,7 +187,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
 
         // stake WAYA token will cause staked token and reward token mixed up,
         // may cause staked tokens withdraw as reward token,never do it.
-        require(_lpToken != waya, "WAYA token can't be added to farm pools");
+        require(_lpToken != WAYA, "WAYA token can't be added to farm pools");
 
         if (_withUpdate) {
             massUpdatePools();
@@ -266,7 +262,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = block.number - pool.lastRewardBlock;
 
-            uint256 wayaReward = (multiplier * (_wayaPerBlockFarm(pool.isRegular)) * (pool.allocPoint)) / (
+            uint256 wayaReward = (multiplier * (wayaPerBlock(pool.isRegular)) * (pool.allocPoint)) / (
                 (pool.isRegular ? totalRegularAllocPoint : totalSpecialAllocPoint)
             );
             accWayaPerShare = accWayaPerShare + ((wayaReward *(ACC_WAYA_PRECISION)) / lpSupply);
@@ -289,12 +285,17 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
  
     /// @notice Calculates and returns the `amount` of WAYA per block, depending on type of Farm.
     /// @param _isRegular If the pool belongs to regular or special.
-    function _wayaPerBlockFarm(bool _isRegular) internal view returns (uint256 amount) {
+    function wayaPerBlock(bool _isRegular) public view returns (uint256 amount) {
         if (_isRegular) {
-            amount = (wayaPerBlock * wayaRateToRegularFarm) / WAYA_RATE_TOTAL_PRECISION;
+            amount = (emissionPerBlock * wayaRateToRegularFarm) / WAYA_RATE_TOTAL_PRECISION;
         } else {
-            amount = (wayaPerBlock * wayaRateToSpecialFarm) / WAYA_RATE_TOTAL_PRECISION;
+            amount = (emissionPerBlock * wayaRateToSpecialFarm) / WAYA_RATE_TOTAL_PRECISION;
         }
+    }
+
+    /// @notice Calculates and returns the `amount` of WAYA per block to reserve.
+    function wayaPerBlockToReserve() public view returns (uint256 amount) {
+        amount = (emissionPerBlock * wayaRateToReserve) / WAYA_RATE_TOTAL_PRECISION;
     }
 
     /// @notice UPDATE reward variables for the given pool.
@@ -308,9 +309,9 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
 
             if (lpSupply > 0 && totalAllocPoint > 0) {
                 uint256 multiplier = block.number - pool.lastRewardBlock;
-                uint256 wayaReward = (multiplier * _wayaPerBlockFarm(pool.isRegular) * pool.allocPoint) /  totalAllocPoint;
-                waya.mint(address(this), wayaReward);
-	pool.accWayaPerShare = pool.accWayaPerShare + (((wayaReward * ACC_WAYA_PRECISION) / lpSupply));
+                uint256 wayaReward = (multiplier * wayaPerBlock(pool.isRegular) * pool.allocPoint) /  totalAllocPoint;
+                WAYA.mint(address(this), wayaReward);
+				pool.accWayaPerShare = pool.accWayaPerShare + (((wayaReward * ACC_WAYA_PRECISION) / lpSupply));
             }
             pool.lastRewardBlock = block.number;
             poolInfo[_pid] = pool;
@@ -327,7 +328,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
 
         require(
             pool.isRegular || whiteList[msg.sender],
-            "ChiefFarmer: The address is not available to deposit in this pool"
+            "MasterChef: The address is not available to deposit in this pool"
         );
 
         uint256 multiplier = getBoostMultiplier(msg.sender, _pid);
@@ -405,7 +406,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
             massUpdatePools();
         }
         uint256 multiplier = block.number - lastAccruedBlock;
-        uint256 pendingWayaToReserve = multiplier * ((wayaPerBlock * wayaRateToReserve) / WAYA_RATE_TOTAL_PRECISION);
+        uint256 pendingWayaToReserve = multiplier * wayaPerBlockToReserve();
 
         // SafeTransfer WAYA
         _safeWayaTransfer(financialController, pendingWayaToReserve);
@@ -425,11 +426,11 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     ) external onlyOwner {
         require(
             _reserveRate > 0 && _regularFarmRate > 0 && _specialFarmRate > 0,
-            "ChiefFarmer: Waya rate must be greater than 0"
+            "MasterChef: Waya rate must be greater than 0"
         );
         require(
             _reserveRate + _regularFarmRate + _specialFarmRate == WAYA_RATE_TOTAL_PRECISION,
-            "ChiefFarmer: Total rate must be 1e12"
+            "MasterChef: Total rate must be 1e12"
         );
         if (_withUpdate) {
             massUpdatePools();
@@ -445,20 +446,20 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     }
 
     /// @notice Update Financial Controller address.
-    /// @param _newAdmin The new Financial Controller address.
-    function updatefinancialController(address _newAdmin) external onlyOwner {
-        require(_newAdmin != address(0), "Financial Controller address must be valid");
-        require(_newAdmin != financialController,  "Financial Controller address is the same");
-        address _oldAdmin = financialController;
-        financialController = _newAdmin;
-        emit UpdatefinancialController(_oldAdmin, _newAdmin);
+    /// @param _newFC  The new Financial Controller address.
+    function updateFinancialController(address _newFC) external onlyOwner {
+        require(_newFC != address(0), "Financial Controller address must be valid");
+        require(_newFC != financialController,  "Financial Controller address is the same");
+        address _oldFC = financialController;
+        financialController = _newFC;
+        emit UpdatefinancialController(_oldFC, _newFC);
     }
 
     /// @notice Update whitelisted addresses for special pools.
     /// @param _user The address to be updated.
     /// @param _isValid The flag for valid or invalid.
     function updateWhiteList(address _user, bool _isValid) external onlyOwner {
-        require(_user != address(0), "ChiefFarmer: The white list address must be valid");
+        require(_user != address(0), "MasterChef: The white list address must be valid");
 
         whiteList[_user] = _isValid;
         emit UpdateWhiteList(_user, _isValid);
@@ -469,7 +470,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     function updateBoostContract(address _newBoostContract) external onlyOwner {
         require(
             _newBoostContract != address(0) && _newBoostContract != boostContract,
-            "ChiefFarmer: New boost contract address must be valid"
+            "MasterChef: New boost contract address must be valid"
         );
 
         boostContract = _newBoostContract;
@@ -485,11 +486,11 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         uint256 _pid,
         uint256 _newMultiplier
     ) external onlyBoostContract nonReentrant {
-        require(_user != address(0), "ChiefFarmer: The user address must be valid");
-        require(poolInfo[_pid].isRegular, "ChiefFarmer: Only regular farm could be boosted");
+        require(_user != address(0), "MasterChef: The user address must be valid");
+        require(poolInfo[_pid].isRegular, "MasterChef: Only regular farm could be boosted");
         require(
             _newMultiplier >= BOOST_PRECISION && _newMultiplier <= MAX_BOOST_PRECISION,
-            "ChiefFarmer: Invalid new boost multiplier"
+            "MasterChef: Invalid new boost multiplier"
         );
 
         PoolInfo memory pool = updatePoolReward(_pid);
@@ -542,9 +543,9 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     /// @param _amount transfer WAYA amounts.
     function _safeWayaTransfer(address _to, uint256 _amount) internal {
         if (_amount > 0) {
-           uint256 wayaBalance = waya.balanceOf(address(this));
+           uint256 wayaBalance = WAYA.balanceOf(address(this));
            _amount = (_amount > wayaBalance ? wayaBalance : _amount); 
-           waya.transfer(_to, _amount);
+           WAYA.safeTransfer(_to, _amount);
         }
     }
 }
