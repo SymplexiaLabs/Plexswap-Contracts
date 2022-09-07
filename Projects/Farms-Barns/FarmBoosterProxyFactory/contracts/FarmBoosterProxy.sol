@@ -12,7 +12,7 @@ contract FarmBoosterProxy is ReentrancyGuard {
     // The address of the farm booster proxy factory
     address public immutable FARM_BOOSTER_PROXY_FACTORY;
     IChiefFarmer public ChiefFarmer;
-    IERC20 public Waya;
+    IERC20 public WAYA;
     IFarmBooster public farmBooster;
 
     address public admin;
@@ -62,7 +62,7 @@ contract FarmBoosterProxy is ReentrancyGuard {
         admin = _admin;
         farmBooster = IFarmBooster(_farmBooster);
         ChiefFarmer = IChiefFarmer(_ChiefFarmer);
-        Waya = IERC20(_Waya);
+        WAYA = IERC20(_Waya);
     }
 
     /**
@@ -120,9 +120,9 @@ contract FarmBoosterProxy is ReentrancyGuard {
     }
 
     function harvestWaya() internal {
-        uint256 wayaBalance = Waya.balanceOf(address(this));
+        uint256 wayaBalance = WAYA.balanceOf(address(this));
         if (wayaBalance > 0) {
-            Waya.safeTransfer(msg.sender, wayaBalance);
+            WAYA.safeTransfer(msg.sender, wayaBalance);
         }
     }
 }

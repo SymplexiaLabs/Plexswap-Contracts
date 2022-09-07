@@ -16,7 +16,7 @@ contract WayaFlexibleVault is Ownable, Pausable {
         uint256 lastUserActionTime;     // keeps track of the last user action time
     }
 
-    IERC20 public immutable wayaToken; // Waya token
+    IERC20 public immutable WAYA; // Waya token
     IWayaVault public immutable wayaVault; //Waya vault
 
     mapping(address => UserInfo) public userInfo;
@@ -65,13 +65,15 @@ contract WayaFlexibleVault is Ownable, Pausable {
         address _ContractManager,
         address _FinancialController
     ) {
+        address _wayaToken;
         wayaVault = _wayaVault;
-        wayaToken = _wayaVault.WayaAddress();
+        (_wayaToken,) = _wayaVault.linkedParams();
+        WAYA = IERC20(_wayaToken);
         ContractManager = _ContractManager;
         FinancialController = _FinancialController;
 
         // Infinite approve
-        IERC20(wayaToken).safeApprove(address(_wayaVault), type(uint256).max);
+        IERC20(WAYA).safeApprove(address(_wayaVault), type(uint256).max);
     }
 
     /**
@@ -115,15 +117,15 @@ contract WayaFlexibleVault is Ownable, Pausable {
                     wayaVault.withdrawByAmount(withdrawAmount);
 
                     currentPerformanceFee = available() >= currentPerformanceFee ? currentPerformanceFee : available();
-                    wayaToken.safeTransfer(FinancialController, currentPerformanceFee);
+                    WAYA.safeTransfer(FinancialController, currentPerformanceFee);
                     emit ChargePerformanceFee(msg.sender, currentPerformanceFee, performanceFeeShares);
                 }
             }
         }
         uint256 pool = balanceOf();
-        wayaToken.safeTransferFrom(msg.sender, address(this), _amount);
+        WAYA.safeTransferFrom(msg.sender, address(this), _amount);
         if (chargeFeeFromDeposite) {
-            wayaToken.safeTransfer(FinancialController, currentPerformanceFee);
+            WAYA.safeTransfer(FinancialController, currentPerformanceFee);
             emit ChargePerformanceFee(msg.sender, currentPerformanceFee, performanceFeeShares);
             pool -= currentPerformanceFee;
         }
@@ -192,7 +194,7 @@ contract WayaFlexibleVault is Ownable, Pausable {
         uint256 totalFee = currentPerformanceFee + currentWithdrawFee;
         if (totalFee > 0) {
             totalFee = available() >= totalFee ? totalFee : available();
-            wayaToken.safeTransfer(FinancialController, totalFee);
+            WAYA.safeTransfer(FinancialController, totalFee);
             if (currentPerformanceFee > 0) {
                 emit ChargePerformanceFee(msg.sender, currentPerformanceFee, performanceFeeShares);
             }
@@ -202,7 +204,7 @@ contract WayaFlexibleVault is Ownable, Pausable {
         }
 
         currentAmount = available() >= currentAmount ? currentAmount : available();
-        wayaToken.safeTransfer(msg.sender, currentAmount);
+        WAYA.safeTransfer(msg.sender, currentAmount);
 
         if (user.shares > 0) {
             user.wayaAtLastUserAction = (user.shares * balanceOf()) / totalShares;
@@ -306,7 +308,7 @@ contract WayaFlexibleVault is Ownable, Pausable {
      * @notice Withdraw unexpected tokens sent to the Waya High Vault
      */
     function inCaseTokensGetStuck(address _wayaToken) external onlyContractManager {
-        require(_wayaToken != address(wayaToken), "Token cannot be same as deposit token");
+        require(_wayaToken != address(WAYA), "Token cannot be same as deposit token");
 
         uint256 amount = IERC20(_wayaToken).balanceOf(address(this));
         IERC20(_wayaToken).safeTransfer(msg.sender, amount);
@@ -342,7 +344,7 @@ contract WayaFlexibleVault is Ownable, Pausable {
      * @dev The contract puts 100% of the tokens to work.
      */
     function available() public view returns (uint256) {
-        return wayaToken.balanceOf(address(this));
+        return WAYA.balanceOf(address(this));
     }
 
     /**
@@ -353,7 +355,7 @@ contract WayaFlexibleVault is Ownable, Pausable {
         (uint256 shares, , , , , , , , ) = wayaVault.userInfo(address(this));
         uint256 pricePerFullShare = wayaVault.getPricePerFullShare();
 
-        return wayaToken.balanceOf(address(this)) + (shares * pricePerFullShare) / 1e18;
+        return WAYA.balanceOf(address(this)) + (shares * pricePerFullShare) / 1e18;
     }
 
     /**

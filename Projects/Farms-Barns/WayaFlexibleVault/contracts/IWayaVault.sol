@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./IERC20.sol";
-
 interface IWayaVault {
     struct UserInfo {
         uint256 shares; // number of shares for a user.
@@ -16,7 +14,7 @@ interface IWayaVault {
         uint256 lockedAmount; // amount deposited during lock period.
     }
 
-    function WayaAddress() external view returns (IERC20);
+    function linkedParams() external view returns  (address, address);
 
     function userInfo(address user)
         external

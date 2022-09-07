@@ -5,16 +5,6 @@
         "internalType": "address",
         "name": "_farmBooster",
         "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_ChiefFarmer",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_Waya",
-        "type": "address"
       }
     ],
     "stateMutability": "nonpayable",
@@ -48,7 +38,7 @@
   },
   {
     "inputs": [],
-    "name": "Farm_Booster",
+    "name": "FarmBooster",
     "outputs": [
       {
         "internalType": "address",
@@ -61,7 +51,7 @@
   },
   {
     "inputs": [],
-    "name": "Waya",
+    "name": "WAYA",
     "outputs": [
       {
         "internalType": "address",

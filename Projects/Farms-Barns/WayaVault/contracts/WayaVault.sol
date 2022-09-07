@@ -23,11 +23,11 @@ contract WayaVault is Ownable, Pausable {
         uint256 lockedAmount; // amount deposited during lock period.
     }
 
-    IERC20 public immutable wayaToken; // waya token.
+    IERC20 public immutable WAYA; // waya token.
 
     IChiefFarmer public immutable ChiefFarmer;
 
-    address public boostContract; // boost contract used in ChiefFarmer.
+    address public boostContract; // Boost Contract used in ChiefFarmer.
     address public VWaya;
 
     mapping(address => UserInfo) public userInfo;
@@ -41,7 +41,7 @@ contract WayaVault is Ownable, Pausable {
     address public  TreasuryAnalyst;
     uint256 public  totalBoostDebt;                  // total boost debt.
     uint256 public  totalLockedAmount;               // total lock amount.
-    uint256 private dummyWayaPoolPID = 1;            // dummyWayaPool (dWP) PID in ChiefFarmer
+    uint256 private dummyWayaPoolPID = 0;            // dummyWayaPool (dWP) PID in ChiefFarmer
 
     uint256 public constant MAX_PERFORMANCE_FEE = 2000;             // 20%
     uint256 public constant MAX_WITHDRAW_FEE = 500;                 // 5%
@@ -107,18 +107,18 @@ contract WayaVault is Ownable, Pausable {
      * @param _treasuryAnalyst: address of TreasuryAnalyst
      */
     constructor(
-
         IChiefFarmer _chieffarmer,
-        IERC20  _wayaToken,
         address _contractManager,
         address _financialController,
         address _treasuryAnalyst
     ) {
-        wayaToken   = _wayaToken;
-        ChiefFarmer = _chieffarmer;
-        ContractManager = _contractManager;
+        address _wayaToken;
+        (_wayaToken, boostContract) = _chieffarmer.linkedParams();
+        ChiefFarmer         = _chieffarmer;
+        WAYA                = IERC20(_wayaToken);
+        ContractManager     = _contractManager;
         FinancialController = _financialController;
-        TreasuryAnalyst = _treasuryAnalyst;
+        TreasuryAnalyst     = _treasuryAnalyst;
     }
 
     /**
@@ -135,9 +135,14 @@ contract WayaVault is Ownable, Pausable {
         emit Init();
     }
 
-    function WayaAddress() external view returns (IERC20) {
-        return wayaToken;
+    function updateParams () external {
+        (,boostContract) = ChiefFarmer.linkedParams();
     }
+
+    function linkedParams() external view returns  (address, address) {
+        return (address(WAYA), address(ChiefFarmer));
+    }
+
     /**
      * @notice Checks if the msg.sender is the ContractManager address.
      */
@@ -195,7 +200,7 @@ contract WayaVault is Ownable, Pausable {
                     // Rates are calculated based on the user's overdue duration.
                     uint256 overdueWeight = (overdueDuration * overdueFee) / DURATION_FACTOR_OVERDUE;
                     uint256 currentOverdueFee = (earnAmount * overdueWeight) / PRECISION_FACTOR;
-                    wayaToken.safeTransfer(FinancialController, currentOverdueFee);
+                    WAYA.safeTransfer(FinancialController, currentOverdueFee);
                     currentAmount -= currentOverdueFee;
                 }
                 // Recalculate the user's share.
@@ -229,7 +234,7 @@ contract WayaVault is Ownable, Pausable {
                 }
                 uint256 currentPerformanceFee = (earnAmount * feeRate) / 10000;
                 if (currentPerformanceFee > 0) {
-                    wayaToken.safeTransfer(FinancialController, currentPerformanceFee);
+                    WAYA.safeTransfer(FinancialController, currentPerformanceFee);
                     totalAmount -= currentPerformanceFee;
                 }
                 // Recalculate the user's share.
@@ -307,7 +312,7 @@ contract WayaVault is Ownable, Pausable {
         // Handle stock funds.
         if (totalShares == 0) {
             uint256 stockAmount = available();
-            wayaToken.safeTransfer(FinancialController, stockAmount);
+            WAYA.safeTransfer(FinancialController, stockAmount);
         }
         // Update user share.
         updateUserShare(_user);
@@ -328,7 +333,7 @@ contract WayaVault is Ownable, Pausable {
         uint256 userCurrentLockedBalance;
         uint256 pool = balanceOf();
         if (_amount > 0) {
-            wayaToken.safeTransferFrom(_user, address(this), _amount);
+            WAYA.safeTransferFrom(_user, address(this), _amount);
             currentAmount = _amount;
         }
 
@@ -449,11 +454,11 @@ contract WayaVault is Ownable, Pausable {
                 feeRate = withdrawFeeContract;
             }
             uint256 currentWithdrawFee = (currentAmount * feeRate) / 10000;
-            wayaToken.safeTransfer(FinancialController, currentWithdrawFee);
+            WAYA.safeTransfer(FinancialController, currentWithdrawFee);
             currentAmount -= currentWithdrawFee;
         }
 
-        wayaToken.safeTransfer(msg.sender, currentAmount);
+        WAYA.safeTransfer(msg.sender, currentAmount);
 
         if (user.shares > 0) {
             user.wayaAtLastUserAction = (user.shares * balanceOf()) / totalShares;
@@ -698,7 +703,7 @@ contract WayaVault is Ownable, Pausable {
      * @notice Withdraw unexpected tokens sent to the Waya Pool
      */
     function inCaseTokensGetStuck(address _token) external onlyContractManager {
-        require(_token != address(wayaToken), "Token cannot be same as deposit token");
+        require(_token != address(WAYA), "Token cannot be same as deposit token");
 
         uint256 amount = IERC20(_token).balanceOf(address(this));
         IERC20(_token).safeTransfer(msg.sender, amount);
@@ -827,7 +832,7 @@ contract WayaVault is Ownable, Pausable {
      * @dev The contract puts 100% of the tokens to work.
      */
     function available() public view returns (uint256) {
-        return wayaToken.balanceOf(address(this));
+        return WAYA.balanceOf(address(this));
     }
 
     /**
@@ -835,7 +840,7 @@ contract WayaVault is Ownable, Pausable {
      * @dev It includes tokens held by the contract and the boost debt amount.
      */
     function balanceOf() public view returns (uint256) {
-        return wayaToken.balanceOf(address(this)) + totalBoostDebt;
+        return WAYA.balanceOf(address(this)) + totalBoostDebt;
     }
 
     /**

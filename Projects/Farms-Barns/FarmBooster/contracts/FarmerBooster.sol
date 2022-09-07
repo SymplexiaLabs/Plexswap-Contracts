@@ -10,13 +10,13 @@ import "./IterateMapping.sol";
 contract FarmBooster is Ownable {
     using IterableMapping for ItMap;
 
-    /// @notice waya token.
-    address public immutable WAYA;
-    /// @notice waya pool.
-    address public immutable WAYA_VAULT;
+    /// @notice Waya token.
+    IERC20 public immutable WAYA;
+    /// @notice Waya pool.
+    IWayaVault public immutable wayaVault;
     /// @notice ChiefFarmer contract.
-    address public immutable CHIEF_FARMER;
-    /// @notice boost proxy factory.
+    IChiefFarmer public immutable ChiefFarmer;
+    /// @notice Boost proxy factory.
     address public BOOSTER_FACTORY;
 
     /// @notice Maximum allowed boosted pool numbers
@@ -69,32 +69,36 @@ contract FarmBooster is Ownable {
         uint256 maxLockDuration
     );
 
-    /// @param _waya WAYA token contract address.
     /// @param _wayaVault Waya Vault contract address.
-    /// @param _ChiefFarmer ChiefFarmer contract address.
     /// @param _maxBoostedFarm Maximum allowed boosted farm  quantity
     /// @param _lMaxBoost Limit max boost
     /// @param _ControlD Controls difficulties
     constructor(
-        address _waya,
-        address _wayaVault,
-        address _ChiefFarmer,
+        IWayaVault _wayaVault,
         uint256 _maxBoostedFarm,
         uint256 _lMaxBoost,
         uint256 _ControlD
     ) {
         require(
-            _maxBoostedFarm > 0 && _lMaxBoost >= MIN_LMB&& _lMaxBoost <= MAX_LMB&& _ControlD > MIN_CD && _ControlD <= MAX_CD,
+            _maxBoostedFarm > 0 && _lMaxBoost >= MIN_LMB && _lMaxBoost <= MAX_LMB && _ControlD > MIN_CD && _ControlD <= MAX_CD,
             "constructor: Invalid parameter"
         );
-        WAYA = _waya;
-        WAYA_VAULT = _wayaVault;
-        CHIEF_FARMER = _ChiefFarmer;
-        MAX_BOOST_FARM_QTD = _maxBoostedFarm;
+        address _wayaToken;
+        address _chiefFarmer;
+        wayaVault = _wayaVault;
+        (_wayaToken, _chiefFarmer) = _wayaVault.linkedParams();
+        WAYA = IERC20(_wayaToken);
+        ChiefFarmer = IChiefFarmer(_chiefFarmer);
         lMaxBoost = _lMaxBoost;
         controlsDifficulties = _ControlD;
+        MAX_BOOST_FARM_QTD = _maxBoostedFarm;
+        
     }
 
+    function linkedParams() external view returns (address, address) {
+        return (address(WAYA), address(ChiefFarmer));
+    }
+    
     /// @notice Checks if the msg.sender is a contract or a proxy
     modifier notContract() {
         require(!_isContract(msg.sender), "contract not allowed");
@@ -116,7 +120,7 @@ contract FarmBooster is Ownable {
 
     /// @notice Checks if the msg.sender is the waya pool.
     modifier onlyWayaVault() {
-        require(msg.sender == WAYA_VAULT, "onlyWayaVault: Not waya pool");
+        require(msg.sender == address(wayaVault), "onlyWayaVault: Not waya pool");
         _;
     }
 
@@ -233,7 +237,7 @@ contract FarmBooster is Ownable {
         require(itmap.contains(_pid), "deactive: None boost user");
 
         if (itmap.data[_pid] > BOOST_PRECISION) {
-            IChiefFarmer(CHIEF_FARMER).updateBoostMultiplier(proxy, _pid, BOOST_PRECISION);
+            ChiefFarmer.updateBoostMultiplier(proxy, _pid, BOOST_PRECISION);
         }
         itmap.remove(_pid);
 
@@ -288,11 +292,11 @@ contract FarmBooster is Ownable {
 
     /// @notice waya pool average locked duration calculator.
     function avgLockDuration() public view returns (uint256) {
-        uint256 totalStakedAmount = IERC20(WAYA).balanceOf(WAYA_VAULT);
+        uint256 totalStakedAmount = WAYA.balanceOf(address(wayaVault));
 
-        uint256 totalLockedAmount = IWayaVault(WAYA_VAULT).totalLockedAmount();
+        uint256 totalLockedAmount = wayaVault.totalLockedAmount();
 
-        uint256 pricePerFullShare = IWayaVault(WAYA_VAULT).getPricePerFullShare();
+        uint256 pricePerFullShare = wayaVault.getPricePerFullShare();
 
         uint256 flexibleShares = ((totalStakedAmount - totalLockedAmount) * 1e18) / pricePerFullShare;
         if (flexibleShares == 0) return 0;
@@ -300,12 +304,12 @@ contract FarmBooster is Ownable {
         uint256 originalShares = (totalLockedAmount * 1e18) / pricePerFullShare;
         if (originalShares == 0) return 0;
 
-        uint256 boostedRatio = ((IWayaVault(WAYA_VAULT).totalShares() - flexibleShares) * BOOST_RATIO_PRECISION) /
+        uint256 boostedRatio = ((wayaVault.totalShares() - flexibleShares) * BOOST_RATIO_PRECISION) /
             originalShares;
         if (boostedRatio <= BOOST_RATIO_PRECISION) return 0;
 
-        uint256 boostWeight = IWayaVault(WAYA_VAULT).BOOST_WEIGHT();
-        uint256 maxLockDuration = IWayaVault(WAYA_VAULT).MAX_LOCK_DURATION() * BOOST_RATIO_PRECISION;
+        uint256 boostWeight = wayaVault.BOOST_WEIGHT();
+        uint256 maxLockDuration = wayaVault.MAX_LOCK_DURATION() * BOOST_RATIO_PRECISION;
 
         uint256 duration = ((boostedRatio - BOOST_RATIO_PRECISION) * 365 * BOOST_WEIGHT_PRECISION) / boostWeight;
         return duration <= maxLockDuration ? duration : maxLockDuration;
@@ -327,13 +331,13 @@ contract FarmBooster is Ownable {
         if (!whiteList[_pid]) {
             if (itmap.data[_pid] > BOOST_PRECISION) {
                 // reset to BOOST_PRECISION
-                IChiefFarmer(CHIEF_FARMER).updateBoostMultiplier(_proxy, _pid, BOOST_PRECISION);
+                ChiefFarmer.updateBoostMultiplier(_proxy, _pid, BOOST_PRECISION);
             }
             itmap.remove(_pid);
             return;
         }
 
-        uint256 prevMultiplier = IChiefFarmer(CHIEF_FARMER).getBoostMultiplier(_proxy, _pid);
+        uint256 prevMultiplier = ChiefFarmer.getBoostMultiplier(_proxy, _pid);
         uint256 multiplier = _boostCalculate(_user, _proxy, _pid, _duration);
 
         if (multiplier < BOOST_PRECISION) {
@@ -344,7 +348,7 @@ contract FarmBooster is Ownable {
 
         // Update multiplier to ChieFarmer
         if (multiplier != prevMultiplier) {
-            IChiefFarmer(CHIEF_FARMER).updateBoostMultiplier(_proxy, _pid, multiplier);
+            ChiefFarmer.updateBoostMultiplier(_proxy, _pid, multiplier);
         }
         itmap.insert(_pid, multiplier);
 
@@ -363,22 +367,22 @@ contract FarmBooster is Ownable {
     ) internal view returns (uint256) {
         if (_duration == 0) return BOOST_PRECISION;
 
-        (uint256 lpBalance, , ) = IChiefFarmer(CHIEF_FARMER).userInfo(_pid, _proxy);
+        (uint256 lpBalance, , ) = ChiefFarmer.userInfo(_pid, _proxy);
         uint256 dB = (lMaxBoost * lpBalance) / LMB_PRECISION;
         // dB == 0 means lpBalance close to 0
         if (lpBalance == 0 || dB == 0) return BOOST_PRECISION;
 
-        (, , , , uint256 lockStartTime, uint256 lockEndTime, , , uint256 userLockedAmount) = IWayaVault(WAYA_VAULT)
+        (, , , , uint256 lockStartTime, uint256 lockEndTime, , , uint256 userLockedAmount) = wayaVault
             .userInfo(_user);
         if (userLockedAmount == 0 || block.timestamp >= lockEndTime) return BOOST_PRECISION;
 
         // userLockedAmount > 0 means totalLockedAmount > 0
-        uint256 totalLockedAmount = IWayaVault(WAYA_VAULT).totalLockedAmount();
+        uint256 totalLockedAmount = wayaVault.totalLockedAmount();
 
-        IERC20 lp = IERC20(IChiefFarmer(CHIEF_FARMER).lpToken(_pid));
+        IERC20 lp = IERC20(ChiefFarmer.lpToken(_pid));
         uint256 userLockedDuration = (lockEndTime - lockStartTime) / (3600 * 24); // days
 
-        uint256 aB = (((lp.balanceOf(CHIEF_FARMER) * userLockedAmount * userLockedDuration) * BOOST_RATIO_PRECISION) /
+        uint256 aB = (((lp.balanceOf(address(ChiefFarmer)) * userLockedAmount * userLockedDuration) * BOOST_RATIO_PRECISION) /
             controlsDifficulties) / (totalLockedAmount * _duration);
 
         // should '*' BOOST_PRECISION

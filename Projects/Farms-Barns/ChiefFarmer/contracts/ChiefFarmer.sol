@@ -151,6 +151,10 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         _poolInfo           =  poolInfo[_pid];
     }
     
+    function linkedParams() external view returns (address, address){
+        return(address(WAYA), address(boostContract));
+    }
+    
      /// @notice Updates WAYA emission.
     function updateEmissionPerBlock(uint256 _newEmissionPerBlock) public onlyOwner {
         uint256 _oldWayaPerBlock = emissionPerBlock;
@@ -362,7 +366,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         PoolInfo memory pool = updatePoolReward(_pid);
         UserInfo storage user = userInfo[_pid][msg.sender];
 
-        require(user.amount >= _amount, "withdraw: Insufficient");
+        require(user.amount >= _amount, "withdraw: Insufficient Balance");
 
         uint256 multiplier = getBoostMultiplier(msg.sender, _pid);
 
@@ -373,7 +377,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
             lpToken[_pid].safeTransfer(msg.sender, _amount);
         }
 
-        user.rewardDebt = (((user.amount * multiplier) / BOOST_PRECISION) *pool.accWayaPerShare) / ACC_WAYA_PRECISION;
+        user.rewardDebt = (((user.amount * multiplier) / BOOST_PRECISION) * pool.accWayaPerShare) / ACC_WAYA_PRECISION;
 
         poolInfo[_pid].totalBoostedShare = poolInfo[_pid].totalBoostedShare - (
             (_amount * multiplier) / BOOST_PRECISION

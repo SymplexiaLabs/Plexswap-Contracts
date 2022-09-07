@@ -119,7 +119,7 @@
   },
   {
     "inputs": [],
-    "name": "Waya",
+    "name": "WAYA",
     "outputs": [
       {
         "internalType": "contract IERC20",

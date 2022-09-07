@@ -2,23 +2,13 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "_waya",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_wayaPool",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_CFarmer",
+        "internalType": "contract IWayaVault",
+        "name": "_wayaVault",
         "type": "address"
       },
       {
         "internalType": "uint256",
-        "name": "_max",
+        "name": "_maxBoostedFarm",
         "type": "uint256"
       },
       {
@@ -353,10 +343,10 @@
   },
   {
     "inputs": [],
-    "name": "CHIEF_FARMER",
+    "name": "ChiefFarmer",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "contract IChiefFarmer",
         "name": "",
         "type": "address"
       }
@@ -460,20 +450,7 @@
     "name": "WAYA",
     "outputs": [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "WAYA_VAULT",
-    "outputs": [
-      {
-        "internalType": "address",
+        "internalType": "contract IERC20",
         "name": "",
         "type": "address"
       }
@@ -608,6 +585,24 @@
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "linkedParams",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -836,6 +831,19 @@
         "internalType": "uint256",
         "name": "size",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "wayaVault",
+    "outputs": [
+      {
+        "internalType": "contract IWayaVault",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",

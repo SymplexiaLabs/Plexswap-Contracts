@@ -15,4 +15,6 @@ interface IFarmBooster {
     function setProxy(address _user, address _proxy) external;
 
     function isBoosterPool(address _user, uint256 _pid) external view returns (bool);
+
+    function linkedParams() external view returns (address, address);
 }

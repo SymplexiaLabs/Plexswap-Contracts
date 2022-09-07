@@ -5,9 +5,9 @@ import "./IFarmBooster.sol";
 import "./FarmBoosterProxy.sol";
 
 contract FarmBoosterProxyFactory {
-    address public immutable Farm_Booster;
+    address public immutable FarmBooster;
     address public immutable ChiefFarmer;
-    address public immutable Waya;
+    address public immutable WAYA;
     // Record the user proxy contract address
     mapping(address => address) public proxyContract;
     // Record the user address corresponding to the proxy
@@ -17,17 +17,12 @@ contract FarmBoosterProxyFactory {
     /**
      * @notice Constructor
      * @param _farmBooster: the address of the farm booster
-     * @param _ChiefFarmer: the address of the Chieffarmer
-     * @param _Waya: the address of the cake token
      */
     constructor(
-        address _farmBooster,
-        address _ChiefFarmer,
-        address _Waya
+        address _farmBooster
     ) {
-        Farm_Booster = _farmBooster;
-        ChiefFarmer = _ChiefFarmer;
-        Waya = _Waya;
+        FarmBooster = _farmBooster;
+        (WAYA, ChiefFarmer) = IFarmBooster(_farmBooster).linkedParams();
     }
 
     /**
@@ -47,8 +42,8 @@ contract FarmBoosterProxyFactory {
         proxyContract[msg.sender] = farmBoosterProxyAddress;
         proxyUser[farmBoosterProxyAddress] = msg.sender;
 
-        FarmBoosterProxy(farmBoosterProxyAddress).initialize(msg.sender, Farm_Booster, ChiefFarmer, Waya);
-        IFarmBooster(Farm_Booster).setProxy(msg.sender, farmBoosterProxyAddress);
+        FarmBoosterProxy(farmBoosterProxyAddress).initialize(msg.sender, FarmBooster, ChiefFarmer, WAYA);
+        IFarmBooster(FarmBooster).setProxy(msg.sender, farmBoosterProxyAddress);
 
         emit NewFarmBoosterProxyContract(farmBoosterProxyAddress);
     }
