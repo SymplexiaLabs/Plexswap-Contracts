@@ -1697,9 +1697,9 @@
     web3 "^1.2.5"
     web3-utils "^1.2.5"
 
-"@pancakeswap/eslint-config-pancake@^1.2.0":
+"@plexswap/eslint-config-plex@^1.2.0":
   version "1.2.0"
-  resolved "https://registry.npmjs.org/@pancakeswap/eslint-config-pancake/-/eslint-config-pancake-1.2.0.tgz"
+  resolved "https://registry.npmjs.org/@plexswap/eslint-config-plex/-/eslint-config-plex-1.2.0.tgz"
   integrity sha512-6WzZY0PNc+lvg99DsN6oXEDBDAEGQnDQNc/kLrTiObGSIBe0ubpt4390zjf1nuVhCknvDLxbzf4Ch8m2bMCL5w==
   dependencies:
     "@typescript-eslint/eslint-plugin" "^4.7.0"
@@ -1711,9 +1711,9 @@
     eslint-plugin-react "^7.21.5"
     eslint-plugin-react-hooks "^4.0.0"
 
-"@pancakeswap/pancake-swap-lib@0.0.4":
+"@plexswap/plex-swap-lib@0.0.4":
   version "0.0.4"
-  resolved "https://registry.npmjs.org/@pancakeswap/pancake-swap-lib/-/pancake-swap-lib-0.0.4.tgz"
+  resolved "https://registry.npmjs.org/@plexswap/plex-swap-lib/-/plex-swap-lib-0.0.4.tgz"
   integrity sha512-efauTqrPQX0P2X159Z5YnAVNmD8jvFxei9iIbDU850MG7KuupfqNTfDoN2/dCMo2GomSFokG2MjW0GenZc4EFg==
 
 "@resolver-engine/core@^0.3.3":

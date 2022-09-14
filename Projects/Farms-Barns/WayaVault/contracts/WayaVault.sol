@@ -482,7 +482,7 @@ contract WayaVault is Ownable, Pausable {
     }
 
     /**
-     * @notice Harvest pending WAYA tokens from MasterChef
+     * @notice Harvest pending WAYA tokens from ChiefFarmer
      */
     function harvest() internal {
         uint256 pendingWaya = ChiefFarmer.pendingWaya(dummyWayaPoolPID, address(this));

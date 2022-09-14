@@ -87,7 +87,7 @@ contract WayaFlexibleVault is Ownable, Pausable {
     /**
      * @notice Deposits funds into the Waya High Vault.
      * @dev Only possible when contract not paused.
-     * @param _amount: number of tokens to deposit (in CAKE)
+     * @param _amount: number of tokens to deposit (in WAYA)
      */
     function deposit(uint256 _amount) external whenNotPaused {
         require(staking, "Not allowed to stake");
@@ -299,7 +299,7 @@ contract WayaFlexibleVault is Ownable, Pausable {
      * @dev EMERGENCY ONLY. Only callable by the contract ContractManager.
      */
     function emergencyWithdraw() external onlyContractManager {
-        require(staking, "No staking cake");
+        require(staking, "No staking waya");
         staking = false;
         wayaVault.withdrawAll();
     }

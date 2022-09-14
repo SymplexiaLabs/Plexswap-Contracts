@@ -5,7 +5,7 @@ interface IWayaVault {
     struct UserInfo {
         uint256 shares; // number of shares for a user.
         uint256 lastDepositedTime; // keep track of deposited time for potential penalty.
-        uint256 cakeAtLastUserAction; // keep track of cake deposited at the last user action.
+        uint256 wayaAtLastUserAction; // keep track of waya deposited at the last user action.
         uint256 lastUserActionTime; // keep track of the last user action time.
         uint256 lockStartTime; // lock start time.
         uint256 lockEndTime; // lock end time.

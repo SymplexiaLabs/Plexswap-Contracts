@@ -5,12 +5,8 @@ import "./ERC20.sol";
 import "./Ownable.sol";
 
 contract MockERC20 is ERC20, Ownable {
-    constructor(
-        string memory name,
-        string memory symbol,
-        uint256 supply
-    ) ERC20(name, symbol) {
-        _mint(msg.sender, supply);
+    constructor() ERC20("dummyWayaPool", "dWP") {
+        _mint(msg.sender, 10);
      }
 
     function mintTokens(uint256 _amount) external {

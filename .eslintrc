@@ -1,5 +1,5 @@
 {
-  "extends": "@pancakeswap/eslint-config-pancake",
+  "extends": "@plexswap/eslint-config-plex",
   "rules": {
     "import/no-extraneous-dependencies": 0
   }

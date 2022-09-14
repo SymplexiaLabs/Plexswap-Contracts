@@ -8,14 +8,14 @@ import "./SafeERC20.sol";
 import "./WayaToken.sol";
 
 
-/// @notice The idea for this MasterChef (CF) contract is to be the owner of a dummy token
+/// @notice The idea for this ChiefFarmer (CF) contract is to be the owner of a dummy token
 /// that is deposited into the TaskMaster (TM) contract.
 /// The allocation point for this pool on TM is the total allocation point for all pools that receive incentives.
 contract ChiefFarmer is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using SafeERC20 for WayaToken;
 
-    /// @notice Info of each MasterChef user.
+    /// @notice Info of each ChiefFarmer user.
     /// `amount` LP token amount the user has provided.
     /// `rewardDebt` Used to calculate the correct amount of rewards. See explanation below.
     ///
@@ -36,7 +36,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         uint256 boostMultiplier;
     }
 
-    /// @notice Info of each MasterChef pool.
+    /// @notice Info of each ChiefFarmer pool.
     /// `allocPoint` The amount of allocation points assigned to the pool.
     ///     Also known as the amount of "multipliers". Combined with `totalXAllocPoint`, it defines the % of
     ///     WAYA rewards each pool gets.
@@ -62,7 +62,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     /// @notice The contract handles the share boosts.
     address public boostContract;
 
-    /// @notice Info of each MasterChef pool.
+    /// @notice Info of each ChiefFarmer pool.
     PoolInfo[] public poolInfo;
 
     /// @notice Address of the LP token for each CF pool.
@@ -332,7 +332,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
 
         require(
             pool.isRegular || whiteList[msg.sender],
-            "MasterChef: The address is not available to deposit in this pool"
+            "ChiefFarmer: The address is not available to deposit in this pool"
         );
 
         uint256 multiplier = getBoostMultiplier(msg.sender, _pid);
@@ -430,11 +430,11 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     ) external onlyOwner {
         require(
             _reserveRate > 0 && _regularFarmRate > 0 && _specialFarmRate > 0,
-            "MasterChef: Waya rate must be greater than 0"
+            "ChiefFarmer: Waya rate must be greater than 0"
         );
         require(
             _reserveRate + _regularFarmRate + _specialFarmRate == WAYA_RATE_TOTAL_PRECISION,
-            "MasterChef: Total rate must be 1e12"
+            "ChiefFarmer: Total rate must be 1e12"
         );
         if (_withUpdate) {
             massUpdatePools();
@@ -463,7 +463,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     /// @param _user The address to be updated.
     /// @param _isValid The flag for valid or invalid.
     function updateWhiteList(address _user, bool _isValid) external onlyOwner {
-        require(_user != address(0), "MasterChef: The white list address must be valid");
+        require(_user != address(0), "ChiefFarmer: The white list address must be valid");
 
         whiteList[_user] = _isValid;
         emit UpdateWhiteList(_user, _isValid);
@@ -474,7 +474,7 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
     function updateBoostContract(address _newBoostContract) external onlyOwner {
         require(
             _newBoostContract != address(0) && _newBoostContract != boostContract,
-            "MasterChef: New boost contract address must be valid"
+            "ChiefFarmer: New boost contract address must be valid"
         );
 
         boostContract = _newBoostContract;
@@ -490,11 +490,11 @@ contract ChiefFarmer is Ownable, ReentrancyGuard {
         uint256 _pid,
         uint256 _newMultiplier
     ) external onlyBoostContract nonReentrant {
-        require(_user != address(0), "MasterChef: The user address must be valid");
-        require(poolInfo[_pid].isRegular, "MasterChef: Only regular farm could be boosted");
+        require(_user != address(0), "ChiefFarmer: The user address must be valid");
+        require(poolInfo[_pid].isRegular, "ChiefFarmer: Only regular farm could be boosted");
         require(
             _newMultiplier >= BOOST_PRECISION && _newMultiplier <= MAX_BOOST_PRECISION,
-            "MasterChef: Invalid new boost multiplier"
+            "ChiefFarmer: Invalid new boost multiplier"
         );
 
         PoolInfo memory pool = updatePoolReward(_pid);
