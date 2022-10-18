@@ -17,10 +17,10 @@ contract FarmBooster is Ownable {
     /// @notice ChiefFarmer contract.
     IChiefFarmer public immutable ChiefFarmer;
     /// @notice Boost proxy factory.
-    address public BOOSTER_FACTORY;
+    address public BoosterFactory;
 
     /// @notice Maximum allowed boosted pool numbers
-    uint256 public MAX_BOOST_FARM_QTD;
+    uint256 public maxBoostedFarms;
     /// @notice limit max boost
     uint256 public lMaxBoost;
     /// @notice include 1e4
@@ -30,7 +30,7 @@ contract FarmBooster is Ownable {
     /// @notice lMaxBoost precision
     uint256 public constant LMB_PRECISION = 1e5;
     /// @notice controls difficulties
-    uint256 public controlsDifficulties;
+    uint256 public controlDifficulties;
     /// @notice not include 0
     uint256 public constant MIN_CD = 0;
     /// @notice include 50
@@ -44,22 +44,22 @@ contract FarmBooster is Ownable {
     /// @notice Waya pool BOOST_WEIGHT precision
     uint256 public constant BOOST_WEIGHT_PRECISION = 100 * 1e10; // 100%
 
-    /// @notice The whitelist of pools allowed for farm boosting.
+    /// @notice The Whitelist of pools allowed for farm boosting.
     mapping(uint256 => bool) public whiteList;
     /// @notice The boost proxy contract mapping(user => proxy).
     mapping(address => address) public proxyContract;
     /// @notice Info of each pool user.
     mapping(address => ItMap) public userInfo;
 
-    event UpdateMaxBoostPool(uint256 factory);
-    event UpdateBoostFactory(address factory);
-    event UpdateCA(uint256 oldCA, uint256 newCA);
-    event UpdateCB(uint256 oldCB, uint256 newCB);
+    event UpdateMaxBoostedFarms(uint256 max);
+    event UpdateBoosterFactory(address factory);
+    event UpdateLMaxBoost(uint256 oldValue, uint256 newValue);
+    event UpdateControlDifficulties(uint256 oldValue, uint256 newValue);
     event Refresh(address indexed user, address proxy, uint256 pid);
-    event UpdateBoostFarms(uint256 pid, bool status);
+    event UpdateBoostedFarms(uint256 pid, bool status);
     event ActiveFarmPool(address indexed user, address proxy, uint256 pid);
     event DeactiveFarmPool(address indexed user, address proxy, uint256 pid);
-    event UpdateBoostProxy(address indexed user, address proxy);
+    event UpdateBoosterProxy(address indexed user, address proxy);
     event UpdatePoolBoostMultiplier(address indexed user, uint256 pid, uint256 oldMultiplier, uint256 newMultiplier);
     event UpdateWayaVault(
         address indexed user,
@@ -72,15 +72,16 @@ contract FarmBooster is Ownable {
     /// @param _wayaVault Waya Vault contract address.
     /// @param _maxBoostedFarm Maximum allowed boosted farm  quantity
     /// @param _lMaxBoost Limit max boost
-    /// @param _ControlD Controls difficulties
+    /// @param _ControlDifficulties Controls difficulties
     constructor(
         IWayaVault _wayaVault,
         uint256 _maxBoostedFarm,
         uint256 _lMaxBoost,
-        uint256 _ControlD
+        uint256 _ControlDifficulties
     ) {
         require(
-            _maxBoostedFarm > 0 && _lMaxBoost >= MIN_LMB && _lMaxBoost <= MAX_LMB && _ControlD > MIN_CD && _ControlD <= MAX_CD,
+            _maxBoostedFarm > 0 && _lMaxBoost >= MIN_LMB && _lMaxBoost <= MAX_LMB && 
+            _ControlDifficulties > MIN_CD && _ControlDifficulties <= MAX_CD,
             "constructor: Invalid parameter"
         );
         address _wayaToken;
@@ -90,8 +91,8 @@ contract FarmBooster is Ownable {
         WAYA = IERC20(_wayaToken);
         ChiefFarmer = IChiefFarmer(_chiefFarmer);
         lMaxBoost = _lMaxBoost;
-        controlsDifficulties = _ControlD;
-        MAX_BOOST_FARM_QTD = _maxBoostedFarm;
+        controlDifficulties = _ControlDifficulties;
+        maxBoostedFarms = _maxBoostedFarm;
         
     }
 
@@ -108,7 +109,7 @@ contract FarmBooster is Ownable {
 
     /// @notice Checks if the msg.sender is the FarmBooster Factory.
     modifier onlyFactory() {
-        require(msg.sender == BOOSTER_FACTORY, "onlyFactory: Not factory");
+        require(msg.sender == BoosterFactory, "onlyFactory: Not factory");
         _;
     }
 
@@ -125,21 +126,21 @@ contract FarmBooster is Ownable {
     }
 
     /// @notice set maximum allowed boosted pool numbers.
-    function setMaxBoostPool(uint256 _max) external onlyOwner {
-        require(_max > 0, "setMaxBoostPool: Maximum boost pool should greater than 0");
-        MAX_BOOST_FARM_QTD = _max;
-        emit UpdateMaxBoostPool(_max);
+    function setMaxBoostedFarms(uint256 _max) external onlyOwner {
+        require(_max > 0, "setMaxBoostPool: Maximum boosted farms should be greater than 0");
+        maxBoostedFarms = _max;
+        emit UpdateMaxBoostedFarms(_max);
     }
 
     /// @notice set boost factory contract.
-    function setBoostFactory(address _factory) external onlyOwner {
+    function setBoosterFactory(address _factory) external onlyOwner {
         require(_factory != address(0), "setBoostFactory: Invalid factory");
-        BOOSTER_FACTORY = _factory;
+        BoosterFactory = _factory;
 
-        emit UpdateBoostFactory(_factory);
+        emit UpdateBoosterFactory(_factory);
     }
 
-    /// @notice Set user boost proxy contract, can only invoked by boost contract.
+    /// @notice Set user boost proxy contract, can only be invoked by FarmBooster Factory.
     /// @param _user boost user address.
     /// @param _proxy boost proxy contract.
     function setProxy(address _user, address _proxy) external onlyFactory {
@@ -148,33 +149,33 @@ contract FarmBooster is Ownable {
 
         proxyContract[_user] = _proxy;
 
-        emit UpdateBoostProxy(_user, _proxy);
+        emit UpdateBoosterProxy(_user, _proxy);
     }
 
     /// @notice Only allow whitelisted pids for farm boosting
     /// @param _pid pool id(Chieffarmer pool).
     /// @param _status farm pool allowed boosted or not
-    function setBoosterFarms(uint256 _pid, bool _status) external onlyOwner {
+    function setBoostedFarms(uint256 _pid, bool _status) external onlyOwner {
         whiteList[_pid] = _status;
-        emit UpdateBoostFarms(_pid, _status);
+        emit UpdateBoostedFarms(_pid, _status);
     }
 
     /// @notice limit max boost
     /// @param _lMaxBoost max boost
-    function set_lMaxBoost(uint256 _lMaxBoost) external onlyOwner {
+    function setlMaxBoost(uint256 _lMaxBoost) external onlyOwner {
         require(_lMaxBoost >= MIN_LMB&& _lMaxBoost <= MAX_LMB, "setLMB: Invalid lMaxBoost");
         uint256 temp = lMaxBoost;
         lMaxBoost = _lMaxBoost;
-        emit UpdateCA(temp, lMaxBoost);
+        emit UpdateLMaxBoost(temp, lMaxBoost);
     }
 
     /// @notice controls difficulties
     /// @param _ControlD difficulties
-    function set_ControlD(uint256 _ControlD) external onlyOwner {
-        require(_ControlD > MIN_CD && _ControlD <= MAX_CD, "setCD: Invalid controlsDifficulties");
-        uint256 temp = controlsDifficulties;
-        controlsDifficulties = _ControlD;
-        emit UpdateCB(temp, controlsDifficulties);
+    function setControlDifficulties(uint256 _ControlD) external onlyOwner {
+        require(_ControlD > MIN_CD && _ControlD <= MAX_CD, "setCD: Invalid controlDifficulties");
+        uint256 temp = controlDifficulties;
+        controlDifficulties = _ControlD;
+        emit UpdateControlDifficulties(temp, controlDifficulties);
     }
 
     /// @notice Wayapool operation(deposit/withdraw) automatically call this function.
@@ -222,7 +223,7 @@ contract FarmBooster is Ownable {
         require(whiteList[_pid] && proxy != address(0), "activate: Not boosted farm pool");
 
         ItMap storage itmap = userInfo[proxy];
-        require(itmap.keys.length < MAX_BOOST_FARM_QTD, "activate: Boosted farms reach to MAX");
+        require(itmap.keys.length < maxBoostedFarms, "activate: Boosted farms reach to MAX");
 
         _updateBoostMultiplier(msg.sender, proxy, _pid, avgLockDuration());
 
@@ -383,7 +384,7 @@ contract FarmBooster is Ownable {
         uint256 userLockedDuration = (lockEndTime - lockStartTime) / (3600 * 24); // days
 
         uint256 aB = (((lp.balanceOf(address(ChiefFarmer)) * userLockedAmount * userLockedDuration) * BOOST_RATIO_PRECISION) /
-            controlsDifficulties) / (totalLockedAmount * _duration);
+            controlDifficulties) / (totalLockedAmount * _duration);
 
         // should '*' BOOST_PRECISION
         return ((lpBalance < (dB + aB) ? lpBalance : (dB + aB)) * BOOST_PRECISION) / dB;
