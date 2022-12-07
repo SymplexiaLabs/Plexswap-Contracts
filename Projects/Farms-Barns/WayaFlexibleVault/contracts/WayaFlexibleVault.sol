@@ -85,7 +85,7 @@ contract WayaFlexibleVault is Ownable, Pausable {
     }
 
     /**
-     * @notice Deposits funds into the Waya High Vault.
+     * @notice Deposits funds into the Waya Flexible Vault.
      * @dev Only possible when contract not paused.
      * @param _amount: number of tokens to deposit (in WAYA)
      */
@@ -305,13 +305,13 @@ contract WayaFlexibleVault is Ownable, Pausable {
     }
 
     /**
-     * @notice Withdraw unexpected tokens sent to the Waya High Vault
+     * @notice Withdraw unexpected tokens sent to the Waya Flexible Vault
      */
-    function inCaseTokensGetStuck(address _wayaToken) external onlyContractManager {
-        require(_wayaToken != address(WAYA), "Token cannot be same as deposit token");
+    function inCaseTokensGetStuck(address _tokenStuck) external onlyContractManager {
+        require(_tokenStuck != address(WAYA), "Token cannot be same as deposit token");
 
-        uint256 amount = IERC20(_wayaToken).balanceOf(address(this));
-        IERC20(_wayaToken).safeTransfer(msg.sender, amount);
+        uint256 amount = IERC20(_tokenStuck).balanceOf(address(this));
+        IERC20(_tokenStuck).safeTransfer(msg.sender, amount);
     }
 
     /**

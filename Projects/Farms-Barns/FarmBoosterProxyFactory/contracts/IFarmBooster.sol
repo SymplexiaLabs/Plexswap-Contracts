@@ -2,7 +2,7 @@
 pragma solidity ^0.8.11;
 
 interface IFarmBooster {
-    function onWayaVaultUpdate(
+    function onWayaPoolUpdate(
         address _user,
         uint256 _lockedAmount,
         uint256 _lockedDuration,

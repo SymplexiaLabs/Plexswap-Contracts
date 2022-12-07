@@ -263,7 +263,7 @@ contract WayaVault is Ownable, Pausable {
     }
 
     /**
-     * @notice Deposit funds into the Waya Pool.
+     * @notice Deposit funds into the Waya Silo.
      * @dev Only possible when contract not paused.
      * @param _amount: number of tokens to deposit (in WAYA)
      * @param _lockDuration: Token lock duration
@@ -393,7 +393,7 @@ contract WayaVault is Ownable, Pausable {
     }
 
     /**
-     * @notice Withdraw funds from the Waya Pool.
+     * @notice Withdraw funds from the Waya Silo.
      * @param _amount: Number of amount to withdraw
      */
     function withdrawByAmount(uint256 _amount) public whenNotPaused {
@@ -402,7 +402,7 @@ contract WayaVault is Ownable, Pausable {
     }
 
     /**
-     * @notice Withdraw funds from the Waya Pool.
+     * @notice Withdraw funds from the Waya Silo.
      * @param _shares: Number of shares to withdraw
      */
     function withdraw(uint256 _shares) public whenNotPaused {

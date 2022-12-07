@@ -184,7 +184,7 @@ contract FarmBooster is Ownable {
     /// @param _lockedDuration user locked duration in waya pool.
     /// @param _totalLockedAmount Total locked waya amount in waya pool.
     /// @param _maxLockDuration maximum locked duration in waya pool.
-    function onWayaVaultUpdate(
+    function onWayaPoolUpdate(
         address _user,
         uint256 _lockedAmount,
         uint256 _lockedDuration,

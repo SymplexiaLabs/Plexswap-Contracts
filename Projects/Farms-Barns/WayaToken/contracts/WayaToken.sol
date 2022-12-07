@@ -40,7 +40,7 @@ contract WayaToken is ERC20, Ownable {
     struct Checkpoint {
         uint32 fromBlock;
         uint256 votes;
-    }
+    }chiefFarmer
 
     /// @dev A record of votes checkpoints for each account, by index
     mapping(address => mapping(uint32 => Checkpoint)) public checkpoints;

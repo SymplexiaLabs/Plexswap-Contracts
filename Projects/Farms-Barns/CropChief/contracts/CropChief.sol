@@ -10,7 +10,7 @@ import "./SafeERC20.sol";
 contract CropChief is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 
-    // The address of the smart chef factory
+    // The address of the crop chief factory
     address public immutable CROPCHIEF_FACTORY;
 
     // Whether a limit is set for users
