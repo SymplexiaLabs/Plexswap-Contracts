@@ -91,7 +91,7 @@ abstract contract Adjustable is BasicAccessControl, Pausable, BaseToken {
 
     function setVault (address _newVault, uint8 _id) external onlyRole(Contract_Manager) {
         require (_id == Project || _id == Contingency || _id == Liquidity, "Invalid id");
-        require (Inventory.Basis[_newVault].balance == 0,   "Not empty");
+        require (Inventory.Basis[_newVault].balance == 0,   "VaultNot empty");
 
         Inventory.setInternalStatus (_newVault, false);
 
@@ -219,7 +219,7 @@ abstract contract AutoLiquidity is Adjustable {
 
         swapRouter = IUniswapV2Router02(_swapRouterAddress);    	//DEX Swap's Address
         
-        // Create a Uniswap/Panwayaswap pair for this new Token
+        // Create a Uniswap/Plexswap pair for this new Token
         liquidityPair = IUniswapV2Factory(swapRouter.factory()).createPair(address(this),swapRouter.WETH());
  
         // set the rest of the contract variables

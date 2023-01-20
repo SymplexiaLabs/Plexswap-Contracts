@@ -7,11 +7,6 @@
         "type": "address"
       },
       {
-        "internalType": "address",
-        "name": "_beneficiary",
-        "type": "address"
-      },
-      {
         "internalType": "bool",
         "name": "_isMutable",
         "type": "bool"
@@ -51,11 +46,17 @@
       {
         "indexed": false,
         "internalType": "address",
-        "name": "beneficiary",
+        "name": "externalSafe",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "_releasedValue",
+        "type": "uint256"
       }
     ],
-    "name": "BeneficiaryUpdated",
+    "name": "CoinBalanceReleased",
     "type": "event"
   },
   {
@@ -70,17 +71,36 @@
       {
         "indexed": false,
         "internalType": "address",
-        "name": "beneficiary",
+        "name": "externalSafe",
+        "type": "address"
+      }
+    ],
+    "name": "ExternalSafeUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "authorizer",
         "type": "address"
       },
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "_releasedValue",
+        "name": "tradedTokens",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "tradedCoins",
         "type": "uint256"
       }
     ],
-    "name": "CoinBalanceReleased",
+    "name": "LiquidityIncreased",
     "type": "event"
   },
   {
@@ -164,6 +184,12 @@
       {
         "indexed": false,
         "internalType": "address",
+        "name": "authorizer",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
         "name": "_token",
         "type": "address"
       },
@@ -172,12 +198,6 @@
         "internalType": "uint256",
         "name": "_targetBalance",
         "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "_isLimitUnlocked",
-        "type": "bool"
       }
     ],
     "name": "Tokeninitialized",
@@ -195,13 +215,7 @@
       {
         "indexed": false,
         "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "beneficiary",
+        "name": "externalSafe",
         "type": "address"
       },
       {
@@ -215,25 +229,7 @@
     "type": "event"
   },
   {
-    "inputs": [],
-    "name": "beneficiary",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
-      {
-        "internalType": "address",
-        "name": "_token",
-        "type": "address"
-      },
       {
         "internalType": "uint256",
         "name": "_targetBalance",
@@ -249,11 +245,11 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_newBeneficiary",
+        "name": "_newExternalSafe",
         "type": "address"
       }
     ],
-    "name": "changeBeneficiary",
+    "name": "changeExternalSafe",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -261,6 +257,19 @@
   {
     "inputs": [],
     "name": "contractManager",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "externalSafe",
     "outputs": [
       {
         "internalType": "address",
@@ -285,6 +294,19 @@
         "internalType": "uint8",
         "name": "",
         "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getTokenPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -333,26 +355,51 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "increaseLiquidity",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
-        "name": "_token",
+        "name": "_tokenBase",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_swapRouter",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_externalSafe",
         "type": "address"
       },
       {
         "internalType": "uint256",
         "name": "_targetBalance",
         "type": "uint256"
-      },
+      }
+    ],
+    "name": "initializeVault",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "isInitialized",
+    "outputs": [
       {
         "internalType": "bool",
-        "name": "_isLimitUnlocked",
+        "name": "",
         "type": "bool"
       }
     ],
-    "name": "initializeToken",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -370,20 +417,50 @@
   },
   {
     "inputs": [],
-    "name": "releaseCoinBalance",
+    "name": "liquidityPair",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "liquidityStatus",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenBalance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "coinBalance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "actionNeed",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "releaseCoinReserves",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_token",
-        "type": "address"
-      }
-    ],
-    "name": "releaseVaultReserves",
+    "inputs": [],
+    "name": "releaseTokenReserves",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -425,45 +502,59 @@
     "type": "function"
   },
   {
-    "inputs": [
+    "inputs": [],
+    "name": "swapRouter",
+    "outputs": [
       {
-        "internalType": "address",
-        "name": "_token",
+        "internalType": "contract IUniswapV2Router02",
+        "name": "",
         "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "_newStatus",
-        "type": "bool"
       }
     ],
-    "name": "setLimitUnlocked",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "targetBalance",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "tokenBase",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
       {
         "internalType": "address",
-        "name": "_token",
+        "name": "_swapRouter",
         "type": "address"
       }
     ],
-    "name": "tokenParams",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
+    "name": "updateRouter",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "receive"
   }
 ]

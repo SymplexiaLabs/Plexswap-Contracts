@@ -1,21 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0
 
-pragma solidity =0.6.6;
+pragma solidity ^0.8.11;
 
 import './IPlexswapFactory.sol';
 import './TransferHelper.sol';
-import "./Ownable.sol";
-
+import './Ownable.sol';
 import './IPlexswapRouter02.sol';
 import './PlexswapLibrary.sol';
 import './IERC20.sol';
 import './IWETH.sol';
+import './Initializable.sol';
 
-contract PlexswapRouter is IPlexswapRouter02, Ownable {
-    using SafeMath for uint256;
+contract PlexswapRouter is IPlexswapRouter02, Ownable, Initializable {
 
-    address public immutable override factory;
-    address public immutable override WETH;
+    address public override factory;
+    address public override WETH;
 
     mapping (address => bool) public _isApprovedPartner;
     bool public isUnrestrictedRouter = true;
@@ -25,7 +24,7 @@ contract PlexswapRouter is IPlexswapRouter02, Ownable {
         _;
     }
 
-    constructor(address _factory, address _WETH) public {
+    function initialize(address _factory, address _WETH) external initializer {
         factory = _factory;
         WETH = _WETH;
     }
@@ -182,7 +181,7 @@ contract PlexswapRouter is IPlexswapRouter02, Ownable {
         bytes32 s
     ) external virtual override returns (uint256 amountA, uint256 amountB) {
         address pair = PlexswapLibrary.pairFor(factory, tokenA, tokenB);
-        uint256 value = approveMax ? uint256(-1) : liquidity;
+        uint256 value = approveMax ? type(uint256).max : liquidity;
         IPlexswapPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);
     }
@@ -200,7 +199,7 @@ contract PlexswapRouter is IPlexswapRouter02, Ownable {
         bytes32 s
     ) external virtual override returns (uint256 amountToken, uint256 amountETH) {
         address pair = PlexswapLibrary.pairFor(factory, token, WETH);
-        uint256 value = approveMax ? uint256(-1) : liquidity;
+        uint256 value = approveMax ? type(uint256).max : liquidity;
         IPlexswapPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         (amountToken, amountETH) = removeLiquidityETH(token, liquidity, amountTokenMin, amountETHMin, to, deadline);
     }
@@ -233,7 +232,7 @@ contract PlexswapRouter is IPlexswapRouter02, Ownable {
         bytes32 s
     ) external virtual override returns (uint256 amountETH) {
         address pair = PlexswapLibrary.pairFor(factory, token, WETH);
-        uint256 value = approveMax ? uint256(-1) : liquidity;
+        uint256 value = approveMax ? type(uint256).max : liquidity;
         IPlexswapPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         amountETH = removeLiquidityETHSupportingFeeOnTransferTokens(
             token,
@@ -385,7 +384,7 @@ contract PlexswapRouter is IPlexswapRouter02, Ownable {
                 (uint256 reserve0, uint256 reserve1, ) = pair.getReserves();
                 (uint256 reserveInput, uint256 reserveOutput) =
                     input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
-                amountInput = IERC20(input).balanceOf(address(pair)).sub(reserveInput);
+                amountInput = IERC20(input).balanceOf(address(pair)) - reserveInput;
                 amountOutput = PlexswapLibrary.getAmountOut(amountInput, reserveInput, reserveOutput);
             }
             (uint256 amount0Out, uint256 amount1Out) =
@@ -411,7 +410,7 @@ contract PlexswapRouter is IPlexswapRouter02, Ownable {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
-            IERC20(path[path.length - 1]).balanceOf(to).sub(balanceBefore) >= amountOutMin,
+            IERC20(path[path.length - 1]).balanceOf(to) - balanceBefore >= amountOutMin,
             "PlexswapRouter: INSUFFICIENT_OUTPUT_AMOUNT"
         );
     }
@@ -429,7 +428,7 @@ contract PlexswapRouter is IPlexswapRouter02, Ownable {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
-            IERC20(path[path.length - 1]).balanceOf(to).sub(balanceBefore) >= amountOutMin,
+            IERC20(path[path.length - 1]).balanceOf(to) - balanceBefore >= amountOutMin,
             "PlexswapRouter: INSUFFICIENT_OUTPUT_AMOUNT"
         );
     }
