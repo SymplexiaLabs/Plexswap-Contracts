@@ -19,10 +19,7 @@ import "./BasicAccessControl.sol";
 
 //    Interfaces   
 
-import "./IUniswapV2Router01.sol";
-import "./IUniswapV2Router02.sol";
-import "./IUniswapV2Factory.sol";
-import "./IUniswapV2Pair.sol";
+import "./ILiquidityVault.sol";
 
 //**********************************//
 //        A D J U S T A B L E   
@@ -72,12 +69,13 @@ abstract contract Adjustable is BasicAccessControl, Pausable, BaseToken {
         reducedProjectFee      = efficiencyFactor / 2;              
         _liquidityThreshold    = Inventory.tokensSupply / (efficiencyFactor * 10); 	 
     }
+
 //   ======================================
 //           Parameters Functions                    
 //   ======================================
 
     function setEfficiencyFactor (uint16 _newValue) external onlyRole(Financial_Controller) {
-        require (_newValue >= 150 && _newValue <= 250, "Thresholds");
+        require (_newValue >= 150 && _newValue <= 250, "Thresholds Invalid");
         _setEfficiencyFactor (_newValue);
         emit EfficiencyFactorUpdated (_msgSender(), _newValue);
     }
@@ -89,31 +87,50 @@ abstract contract Adjustable is BasicAccessControl, Pausable, BaseToken {
         if (_newType == Partner) { Inventory.partnersList.push(_account); }
     }
 
-    function setVault (address _newVault, uint8 _id) external onlyRole(Contract_Manager) {
-        require (_id == Project || _id == Contingency || _id == Liquidity, "Invalid id");
+    function setProjectVault (address _newVault) external onlyRole(Contract_Manager) {
         require (Inventory.Basis[_newVault].balance == 0,   "VaultNot empty");
 
         Inventory.setInternalStatus (_newVault, false);
+        Inventory.Basis[_newVault].balance              = Inventory.Basis[projectFundsVault].balance;
+        Inventory.Basis[projectFundsVault].balance      = 0;
+        Inventory.Basis[projectFundsVault].accType      = Ordinary;
+        projectFundsVault                               = _newVault;
 
-        if        (_id == Project)     {
-            Inventory.Basis[_newVault].balance = Inventory.Basis[projectFundsVault].balance;
-            Inventory.Basis[projectFundsVault].balance        = 0;
-            Inventory.Basis[projectFundsVault].accType        = Ordinary;
-            projectFundsVault     = _newVault;
-        } else if (_id == Contingency) {
-            Inventory.Basis[_newVault].balance = Inventory.Basis[contingencyFundsVault].balance;
-            Inventory.Basis[contingencyFundsVault].balance    = 0;
-            Inventory.Basis[contingencyFundsVault].accType    = Ordinary;
-            contingencyFundsVault = _newVault;
-        } else if (_id == Liquidity)   {
-            Inventory.Basis[_newVault].balance = Inventory.Basis[liquidityVault].balance;
-            Inventory.Basis[liquidityVault].balance           = 0;
-            Inventory.Basis[liquidityVault].accType           = Ordinary;
-            liquidityVault        = _newVault;
-        }
-
-        emit VaultUpdated(_msgSender(), _id, _newVault);
+        emit VaultUpdated(_msgSender(), Project, _newVault);
     } 
+
+    function setContingencyVault (address _newVault) external onlyRole(Contract_Manager) {
+        require (Inventory.Basis[_newVault].balance == 0,   "Vault Not empty");
+
+        Inventory.setInternalStatus (_newVault, false);
+        Inventory.Basis[_newVault].balance                = Inventory.Basis[contingencyFundsVault].balance;
+        Inventory.Basis[contingencyFundsVault].balance    = 0;
+        Inventory.Basis[contingencyFundsVault].accType    = Ordinary;
+        contingencyFundsVault                             = _newVault;
+
+        emit VaultUpdated(_msgSender(), Contingency, _newVault);
+    } 
+
+    function setLiquidityVault (address _newVault) external onlyRole(Contract_Manager) {
+        // Require "Liquidity Vault" to be Initialized
+        require (ILiquidityVault(_newVault).baseToken() == address(this), "Vault not Linked");
+        require (ILiquidityVault(_newVault).isInitialized(), "Vault not Initialized");
+        require (Inventory.Basis[_newVault].balance == 0,   "Vault not Empty");
+
+        Inventory.setInternalStatus (_newVault, false);
+        Inventory.Basis[_newVault].balance          = Inventory.Basis[liquidityVault].balance;
+        Inventory.Basis[liquidityVault].balance     = 0;
+        Inventory.Basis[liquidityVault].accType     = Ordinary;
+        liquidityVault                              = _newVault;
+
+        _updateLiquidityPair();
+
+        emit VaultUpdated(_msgSender(), Liquidity, _newVault);
+    } 
+
+    function liquidityThreshold () external view returns (uint256) {
+        return _liquidityThreshold;
+    }
 //   ======================================
 //           Contingency Functions                    
 //   ======================================
@@ -197,34 +214,15 @@ abstract contract  FlowFlexible is Adjustable {
 //**********************************//
 abstract contract AutoLiquidity is Adjustable {
 
-    IUniswapV2Router02  public   swapRouter;
-    address             public   liquidityPair;
-    bool                internal autoLiquidity;
-    bool                internal inLiquidityProcess; 
-
-    modifier nonReentrant {
-        inLiquidityProcess = true;
-        _;
-        inLiquidityProcess = false;
-    }
+    address             internal   _slotReserved_2;
+    address             public      liquidityPair;
+    bool                public      autoLiquidity;
+    bool                internal   _slotReserved_3;
     
-    event LiquidityIncreased(uint256 tokensSwapped, uint256 coinsReceived, uint256 tokensIntoLiquidity);    
+    event AutoLiquidityIssued(uint256 tradedTokens, uint256 tradedCoins);    
     event CoinsTransferred(address recipient, uint256 amountCoins);
     event AutoLiquiditySet (address authorizer, bool _status);
-//   ======================================
-//             Initialize Function             
-//   ======================================  
-    
-    function _AutoLiquidity_init () internal initializer {
 
-        swapRouter = IUniswapV2Router02(_swapRouterAddress);    	//DEX Swap's Address
-        
-        // Create a Uniswap/Plexswap pair for this new Token
-        liquidityPair = IUniswapV2Factory(swapRouter.factory()).createPair(address(this),swapRouter.WETH());
- 
-        // set the rest of the contract variables
-        autoLiquidity   = true;
-    }
 //   ======================================
 //     To receive Coins              
 //   ======================================
@@ -232,96 +230,16 @@ abstract contract AutoLiquidity is Adjustable {
     receive() external payable {}                      			
 
 //   ======================================
-//      BEGIN Function swapAndLiquify  
-//   ======================================
+//          Internal Functions                    
+//   ====================================== 
 
-    function _increaseLiquidity (uint256 numTokensToLiquidity) internal nonReentrant {
+    function _autoLiquidity(uint256 _amount) internal {
+        Inventory.Basis[address(this)].balance      -= _amount;
+        Inventory.Basis[liquidityVault].balance     += _amount;    
+        (uint256 tradedTokens, uint256 tradedCoins)  = ILiquidityVault(liquidityVault).autoLiquidity(_amount);
 
-        // **** Split the 'numTokensToLiquidity' into halves  ***
-        uint256 swapAmount = numTokensToLiquidity / 2;
-        uint256 liquidityAmount;
-
-        // NOTE: Capture the contract's current Coins balance,  
-        // thus we can know exactly how much Coins the swap 
-        // creates, and not make recent events include any Coin  
-        // that has been manually sent to the contract. 
-        uint256 initialCoinBalance = address(this).balance;
-
-        // Swap tokens for Coins (01)
-        _swapProcess(swapAmount);
-
-        // Calculate how much Coins was swapped
-        uint256  swappedCoins  = address(this).balance - initialCoinBalance;
-
-        // Adjust the amount of Tokens to add to Liquidity Pool
-        uint256 _tokensDesired = (getTokenPrice() * swappedCoins) / (10 ** 18);
-        uint256 _deficitTokens = ( _tokensDesired > Inventory.Basis[address(this)].balance) ? (_tokensDesired - Inventory.Basis[address(this)].balance) : 0;
-
-        if (_deficitTokens == 0) {
-            liquidityAmount = _tokensDesired; }
-        else {
-            if (Inventory.Basis[regulatoryFunds].balance >= _deficitTokens) {
-                Inventory.Basis[regulatoryFunds].balance -= _deficitTokens;
-                Inventory.Basis[address(this)].balance   += _deficitTokens;
-            }
-            liquidityAmount = Inventory.Basis[address(this)].balance;
-        }
-
-        // Add liquidity to DEX  (02)
-        _liquidityProcess(liquidityAmount, swappedCoins);
-
-        emit LiquidityIncreased(swapAmount, swappedCoins, liquidityAmount);
-
+        emit AutoLiquidityIssued(tradedTokens, tradedCoins);
     }
-//   ======================================
-//          Special Functions                    
-//   ======================================  
-
-    function _swapProcess (uint256 swapAmount) private {
-        address[] memory path = new address[](2);                       // Generate the DEX pair path of token -> weth
-        path[0] = address(this);
-        path[1] = swapRouter.WETH();
-
-        _approve(address(this), address(swapRouter), swapAmount);
-
-        // Make the Swap
-        swapRouter.swapExactTokensForETHSupportingFeeOnTransferTokens(
-            swapAmount,
-            0, 				// Accept any amount of Coins
-            path,
-            address(this),  // Recipient of the ETH/BNB 
-            block.timestamp
-        );
-    }
-
-    function _liquidityProcess (uint256 liquidityAmount, uint256 swappedCoins) private {
-        // Approve token transfer to cover all possible scenarios
-        _approve(address(this), address(swapRouter), liquidityAmount);   
-
-        // Add the liquidity
-        swapRouter.addLiquidityETH{value: swappedCoins}(
-            address(this),
-            liquidityAmount,
-            0, // slippage is unavoidable
-            0, // slippage is unavoidable
-            liquidityVault,     // Recipient of the liquidity tokens.
-            block.timestamp  );
-    }
-
-    function getTokenPrice () internal view returns(uint256) {
-        BaseToken T0 = BaseToken(IUniswapV2Pair(liquidityPair).token0());
-        BaseToken T1 = BaseToken(IUniswapV2Pair(liquidityPair).token1());
-
-        (uint256 _reservesT0, uint256 _reservesT1,) = IUniswapV2Pair(liquidityPair).getReserves();
-
-        // Return amount of Token1 needed to buy Token0 (ETH/BNB)
-        if (_reservesT0 == 0 || _reservesT1 == 0) return 0;
-        if (address(T0) == address(this)) {
-            return( (_reservesT0 * (10 ** uint256(T1.decimals() ))) / (_reservesT1) ); }
-        else { 
-            return( (_reservesT1 * (10 ** uint256(T0.decimals() ))) / (_reservesT0) ); }   
-    }
-
 //   ======================================
 //          External Functions                    
 //   ======================================    
@@ -333,19 +251,31 @@ abstract contract AutoLiquidity is Adjustable {
         emit CoinsTransferred(liquidityVault, amountToTransfer);
     }
 
-    function setAutoLiquidity (bool _status) external onlyRole(Treasury_Analyst) {
+    function enableAutoLiquidity () external onlyRole(Treasury_Analyst) {
+        // Require "Liquidity Vault" to be Initialized
+        require (!autoLiquidity, "AutoLiquidity Already Enabled");
+        require (liquidityVault != address(0), "Liquidity Vault not Informed");
+        require (ILiquidityVault(liquidityVault).isInitialized(), "Vault not Initialized");
         if (Inventory.Basis[address(this)].balance >= _liquidityThreshold) { 
-            _increaseLiquidity(_liquidityThreshold);
+            _autoLiquidity(_liquidityThreshold);
         }
-        autoLiquidity = _status;
-        emit AutoLiquiditySet (_msgSender(), _status);
+        autoLiquidity = true;
+        emit AutoLiquiditySet (_msgSender(), autoLiquidity);
     }
 
-    function updateRouterAndPair(address _swapRouter, address _liquidityPair) external  onlyRole(Contract_Manager) {
-        swapRouter = IUniswapV2Router02(_swapRouter);
-        liquidityPair = _liquidityPair;
+    function disableAutoLiquidity () external onlyRole(Treasury_Analyst) {
+        require (autoLiquidity, "Auto Liquidity Already Disabled");
+        if (Inventory.Basis[address(this)].balance >= _liquidityThreshold) { 
+            _autoLiquidity(_liquidityThreshold);
+        }
+        autoLiquidity = false;
+        emit AutoLiquiditySet (_msgSender(), autoLiquidity);
     }
 
+    function manualLiquidity () external onlyRole(Treasury_Analyst) {
+        require (Inventory.Basis[address(this)].balance >= _liquidityThreshold, "Below liquidity threshold"); 
+            _autoLiquidity(_liquidityThreshold);
+    }
 }
 //**********************************//
 //   T   A   X   A   B   L   E 
@@ -390,10 +320,8 @@ abstract contract Taxable is  FlowFlexible, AutoLiquidity {
 
         Inventory.setInternalStatus (owner(),               false);
         Inventory.setInternalStatus (address(this),         false);
-        Inventory.setInternalStatus (liquidityPair,         false);
         Inventory.setInternalStatus (projectFundsVault,     false);
         Inventory.setInternalStatus (contingencyFundsVault, false);
-        Inventory.setInternalStatus (liquidityVault,        false);
         Inventory.setInternalStatus (address(0),            true);
         Inventory.setInternalStatus (wicksellReserves,      true);
         Inventory.setInternalStatus (goldenBonus,           true);
@@ -403,15 +331,14 @@ abstract contract Taxable is  FlowFlexible, AutoLiquidity {
         Inventory.setInternalStatus (regulatoryFunds,       true); 
 
         Inventory.includeInBonus(_msgSender(),wicksellReserves);   // Additional Bonus generation strategy in the burning process
-        
-        Inventory.Basis[liquidityPair].isTaxFree = false;
- 
+    
         // This factor calibrates the contract performance and the values of reduced fees 
 
         _setEfficiencyFactor (200);
         
         emit Transfer(address(0), _msgSender(), Inventory.tokensSupply);
     } 
+
 //  =======================================
 //        IERC20 Functions (OVERRIDE)              
 //   ======================================
@@ -440,7 +367,7 @@ abstract contract Taxable is  FlowFlexible, AutoLiquidity {
         //  Indicates that all fees should be deducted from transfer
         bool applyFee = (Inventory.Basis[sender].isTaxFree || Inventory.Basis[recipient].isTaxFree) ? false:true;
 
-        if (autoLiquidity && !inLiquidityProcess) {_beforeTokenTransfer(sender, recipient, amount);}
+        if (autoLiquidity && !ILiquidityVault(liquidityVault).isAddingLiquidity()) {_beforeTokenTransfer(sender, recipient, amount);}
 
         _tokenTransfer(sender, recipient, amount, applyFee); 
   
@@ -469,9 +396,10 @@ abstract contract Taxable is  FlowFlexible, AutoLiquidity {
         }
 
         if (sender != liquidityPair && Inventory.Basis[address(this)].balance >= _liquidityThreshold) { 
-            _increaseLiquidity(_liquidityThreshold);
+            _autoLiquidity(_liquidityThreshold);
         }
     }
+
 //   ======================================
 //      BEGIN Function _tokenTransfer                   
 //   ======================================
@@ -600,7 +528,7 @@ abstract contract Taxable is  FlowFlexible, AutoLiquidity {
         if (Inventory.Basis[regulatoryFunds].balance >= numTokensToLiquidity) {
             Inventory.Basis[regulatoryFunds].balance -= numTokensToLiquidity;      
             Inventory.Basis[address(this)].balance   += numTokensToLiquidity;
-            _increaseLiquidity(numTokensToLiquidity);
+            _autoLiquidity(numTokensToLiquidity);
             Inventory.tradingTrack.lastTxnType        = 5;
             Inventory.tradingTrack.needAttenuation    = false;
         }
@@ -612,9 +540,19 @@ abstract contract Taxable is  FlowFlexible, AutoLiquidity {
         }
     }
 
+    function _updateLiquidityPair () internal override {
+        liquidityPair = ILiquidityVault(liquidityVault).liquidityPair();
+        Inventory.setInternalStatus (liquidityPair,false);
+        Inventory.Basis[liquidityPair].isTaxFree = false;
+    }
 //   ======================================
 //            Manageable Functions                    
 //   ======================================
+
+    function updateLiquidityPair () external onlyRole(Contract_Manager) {
+        require (ILiquidityVault(liquidityVault).baseToken() == address(this), "Vault not Linked");
+        _updateLiquidityPair ();
+    }
 
     function shareCorporateAssets (address _beneficiary, uint256 _amountToShare) external  onlyRole(Contract_Manager) {
         require(Inventory.Basis[_beneficiary].accType == Contributor || 
@@ -657,6 +595,7 @@ abstract contract Taxable is  FlowFlexible, AutoLiquidity {
         Inventory.Basis[account].isTaxFree = status;
         emit SetTaxableStatus (_msgSender(), account, status);
     }
+
 //   ======================================
 //      Ownable Functions  (OVERRIDE)             
 //   ======================================
@@ -710,6 +649,10 @@ abstract contract Taxable is  FlowFlexible, AutoLiquidity {
         _daysToRelease  = uint48((_nextRelease - block.timestamp) / 86400);
         _valueToRelease = (Inventory.futureAssets[_recipient][Inventory.Basis[_recipient].headFutureAssets].balance) / (10 ** _decimals);
     }
+
+    function getTokenPrice () public view returns (uint256) { 
+        return ILiquidityVault(liquidityVault).getTokenPrice();
+    }
 }
 //**********************************//
 //     S Y M P L E X I A  CONTRACT
@@ -720,13 +663,10 @@ contract SymplexiaToken is Taxable {
    function initialize (string  memory _tokenName, 
 			            string  memory _tokenSymbol,
 			            address _projectFundsVault, 
-			            address _contingencyFundsVault, 
-			            address _liquidityVault,
-			            address swapRouterAddress ) public initializer {
+			            address _contingencyFundsVault ) public initializer {
 
-        _BaseToken_init (_tokenName, _tokenSymbol, _projectFundsVault, _contingencyFundsVault, _liquidityVault, swapRouterAddress);
+        _BaseToken_init (_tokenName, _tokenSymbol, _projectFundsVault, _contingencyFundsVault);
         _Adjustable_init ();
-        _AutoLiquidity_init (); 
         _Taxable_init (); 
     }   
 

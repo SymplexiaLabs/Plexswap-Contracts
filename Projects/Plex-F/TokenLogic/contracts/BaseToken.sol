@@ -44,13 +44,13 @@ contract BaseToken is  Context, IERC20, IERC20Metadata, Ownable, Initializable {
 
     mapping (address => mapping(address => uint256)) private _allowances;
   
-    string  private   _name;
-    string  private   _symbol;
-    	                                     
+    string  private           _name;
+    string  private           _symbol;
+
     address public            contingencyFundsVault;
     address public            projectFundsVault;
     address public            liquidityVault;
-    address internal          _swapRouterAddress;
+    address internal          _slotReserved_1;
     uint16  internal          reducedLiquidityFee;                   // Initially 1%            (Depends on efficiencyFactor)
     uint16  internal          reducedBonusFee;                       // Initially 2%            (Depends on efficiencyFactor)
     uint16  internal          reducedProjectFee;                     // Initially 1%            (Depends on efficiencyFactor)
@@ -76,28 +76,25 @@ contract BaseToken is  Context, IERC20, IERC20Metadata, Ownable, Initializable {
                 string memory name_, 
 				string memory symbol_,
 				address _projectFundsVault, 
-				address _contingencyFundsVault, 
-				address _liquidityVault,
-				address swapRouterAddress ) internal initializer { 
+				address _contingencyFundsVault ) internal initializer { 
 
         _name   = name_;
         _symbol = symbol_;
 
         projectFundsVault      = _projectFundsVault;
         contingencyFundsVault  = _contingencyFundsVault;
-        liquidityVault         = _liquidityVault;
-        _swapRouterAddress     = swapRouterAddress;
-
  	    Inventory.tokensSupply = (_baseSupply) * 10**_decimals;
         Inventory.isBurnable   = true;
 
        _Ownable_init ();
     }
 //   ======================================
-//             Hook Function             
+//             Hook Functions             
 //   ======================================
 
     function _tokenTransfer (address, address, uint256, bool) internal virtual {}
+
+    function _updateLiquidityPair () internal virtual {}
 
 //   ======================================
 //   ======================================
