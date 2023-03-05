@@ -21,16 +21,16 @@ import "./IBaseToken.sol";
 contract LiquidityVault is BasicAccessControl {
     using SafeERC20 for IBaseToken;
 
-    IUniswapV2Router02  public    swapRouter;
-    address             internal  _baseToken; 
-    uint256             public    targetBalance;
-    address             public    externalSafe;
-    address             public    contractManager;
-
+    IUniswapV2Router02  public     swapRouter;
+    uint256             public     targetBalance;
     bool                public     immutable isMutable;
-    bool                internal   _isInitialized;
-    bool                internal   _inLiquidityProcess; 
-    address             internal   _liquidityPair;
+
+    address             internal  _externalSafe;
+    address             internal  _baseToken; 
+    address             internal  _contractManager;
+    bool                internal  _isInitialized;
+    bool                internal  _inLiquidityProcess; 
+    address             internal  _liquidityPair;
 
     modifier nonReentrant {
         _inLiquidityProcess = true;
@@ -44,20 +44,20 @@ contract LiquidityVault is BasicAccessControl {
     uint8 constant Linked_Contract      = 2;
 
     event BalanceLimitUpdated   (address authorizer, uint256 targetBalance);
-    event ExternalSafeUpdated   (address authorizer, address externalSafe);
-    event VaultReservesReleased (address authorizer, address externalSafe, uint256 _releasedValue);
-    event CoinBalanceReleased   (address authorizer, address externalSafe, uint256 _releasedValue);
-    event Tokeninitialized      (address authorizer, address externalSafe, uint256 targetBalance);
+    event ExternalSafeUpdated   (address authorizer, address _externalSafe);
+    event VaultReservesReleased (address authorizer, address _externalSafe, uint256 _releasedValue);
+    event CoinBalanceReleased   (address authorizer, address _externalSafe, uint256 _releasedValue);
+    event Tokeninitialized      (address authorizer, address _externalSafe, uint256 targetBalance);
     event LiquidityIncreased    (address authorizer, uint256 tradedTokens, uint256 tradedCoins);   
 
     constructor (address _manager, bool _isMutable)  {
        
-        contractManager = _manager;
+        _contractManager = _manager;
         isMutable       = _isMutable;
 
-        _setupRole(Contract_Manager,        contractManager);
-        _setupRole(Financial_Controller,    contractManager);
-        _setupRole(Compliance_Auditor,      contractManager);
+        _setupRole(Contract_Manager,        _contractManager);
+        _setupRole(Financial_Controller,    _contractManager);
+        _setupRole(Compliance_Auditor,      _contractManager);
 
         _setRoleAdmin(Contract_Manager,     Contract_Manager);
         _setRoleAdmin(Financial_Controller, Contract_Manager);
@@ -138,20 +138,20 @@ contract LiquidityVault is BasicAccessControl {
 //          External Functions                    
 //   ======================================
 
-    function initializeVault(address _newToken, address _newRouter, address _externalSafe, uint256 _targetBalance) external onlyRole(Financial_Controller) {
+    function initializeVault(address _newToken, address _newRouter, address _newExternalSafe, uint256 _targetBalance) external onlyRole(Financial_Controller) {
         require (!_isInitialized, "Token already initialized");
         require (_targetBalance > 0, "Target limit invalid");
-        require (hasRole(Financial_Controller, _externalSafe),"ExternalSafe without the needed role");
+        require (hasRole(Financial_Controller, _newExternalSafe),"ExternalSafe without the needed role");
 
         _baseToken         = _newToken;
-        externalSafe       = _externalSafe;
+        _externalSafe      = _newExternalSafe;
         targetBalance      = _targetBalance * (10**18);
         _setRouterAndPair(_newRouter,  _newToken);
         _setupRole(Linked_Contract,    _newToken);
         _setRoleAdmin(Linked_Contract,  Linked_Contract);
         _isInitialized     = true;
         
-        emit Tokeninitialized (_msgSender(), externalSafe, targetBalance);
+        emit Tokeninitialized (_msgSender(), _externalSafe, targetBalance);
     }
 
     function updateRouter(address _newRouter) external  onlyRole(Contract_Manager) {
@@ -176,26 +176,26 @@ contract LiquidityVault is BasicAccessControl {
     function changeExternalSafe (address _newExternalSafe) external onlyRole(Compliance_Auditor) {
         require (isMutable, "This contract is immutable.");
         require (hasRole(Financial_Controller, _newExternalSafe),"ExternalSafe without the needed role");
-        externalSafe = _newExternalSafe;
-        emit ExternalSafeUpdated (_msgSender(), externalSafe);
+        _externalSafe = _newExternalSafe;
+        emit ExternalSafeUpdated (_msgSender(), _externalSafe);
     }
 
     function changeBalanceLimit (uint256 _targetBalance) external onlyRole(Compliance_Auditor)  {
         require (isMutable, "This contract is immutable.");
-        require (isInitialized(), "Vault is not initialized");
+        require (_isInitialized, "Vault is not initialized");
         require (_targetBalance > 0, "Limit invalid");
         targetBalance      = _targetBalance * (10**18);
         emit BalanceLimitUpdated (_msgSender(), _targetBalance);
     }
 
     function autoLiquidity (uint256 _numTokensToLiquidity) external onlyRole(Linked_Contract) returns (uint256 tradedTokens, uint256 tradedCoins)
-    {
-        require (isInitialized(), "Vault is not initialized");
+    {  
+        require (_isInitialized, "Vault is not initialized");
         (tradedTokens, tradedCoins) = _autoLiquidity (_numTokensToLiquidity);
     }
 
     function specialLiquidity () external onlyRole(Financial_Controller) {
-        require (isInitialized(), "Vault is not initialized");
+        require (_isInitialized, "Vault is not initialized");
         (uint256 _tokenBalance, uint256 _coinBalance, bool actionNeed) = liquidityStatus ();
         require (actionNeed, "Vault Reserves below limit");
         
@@ -205,7 +205,7 @@ contract LiquidityVault is BasicAccessControl {
     }
 
     function releaseTokenReserves () external onlyRole(Financial_Controller) {
-        require (isInitialized(), "Vault is not initialized");
+        require (_isInitialized, "Vault is not initialized");
         (uint256 _tokenBalance, uint256 _coinBalance, bool _actionNeed) = liquidityStatus ();
         require (_tokenBalance > 0, "Balance must be greater than 0");
 
@@ -216,13 +216,13 @@ contract LiquidityVault is BasicAccessControl {
         }
 
         if (_tokenBalance > 0 ){
-            IBaseToken(_baseToken).safeTransfer(externalSafe, _tokenBalance);
-            emit VaultReservesReleased (_msgSender(), externalSafe, _tokenBalance);
+            IBaseToken(_baseToken).safeTransfer(_externalSafe, _tokenBalance);
+            emit VaultReservesReleased (_msgSender(), _externalSafe, _tokenBalance);
         }
     }
 
     function releaseCoinReserves () external onlyRole(Financial_Controller) {
-        require (isInitialized(), "Vault is not initialized");
+        require (_isInitialized, "Vault is not initialized");
         (uint256 _tokenBalance, uint256 _coinBalance, bool _actionNeed) = liquidityStatus ();
         require(_coinBalance > 0, "Balance must be greater than 0");
 
@@ -233,8 +233,8 @@ contract LiquidityVault is BasicAccessControl {
         }
 
         if (_coinBalance > 0) {
-        payable(externalSafe).transfer(_coinBalance);
-        emit CoinBalanceReleased (_msgSender(), externalSafe, _coinBalance);
+        payable(_externalSafe).transfer(_coinBalance);
+        emit CoinBalanceReleased (_msgSender(), _externalSafe, _coinBalance);
         }
     }
 
@@ -244,7 +244,7 @@ contract LiquidityVault is BasicAccessControl {
         actionNeed   = (tokenBalance > 0 && coinBalance >= targetBalance);
     }
 
-    function isInitialized() public view returns (bool) {
+    function isInitialized() external view returns (bool) {
         return _isInitialized;
     }
 
@@ -252,12 +252,20 @@ contract LiquidityVault is BasicAccessControl {
         return _inLiquidityProcess;
     }
 
-    function liquidityPair() public view returns (address) {
+    function liquidityPair() external view returns (address) {
         return _liquidityPair;
     }
 
-    function baseToken() public view returns (address) {
+    function baseToken() external view returns (address) {
         return _baseToken;
+    }
+
+    function contractManager() external view returns (address) {
+        return _contractManager;
+    }
+
+    function externalSafe() external view returns (address) {
+        return _externalSafe;
     }
 //   ======================================
 //     To receive Coins              

@@ -50,7 +50,7 @@ contract BaseToken is  Context, IERC20, IERC20Metadata, Ownable, Initializable {
     address public            contingencyFundsVault;
     address public            projectFundsVault;
     address public            liquidityVault;
-    address internal          _slotReserved_1;
+    address public            authorizedDealer;
     uint16  internal          reducedLiquidityFee;                   // Initially 1%            (Depends on efficiencyFactor)
     uint16  internal          reducedBonusFee;                       // Initially 2%            (Depends on efficiencyFactor)
     uint16  internal          reducedProjectFee;                     // Initially 1%            (Depends on efficiencyFactor)
@@ -93,8 +93,6 @@ contract BaseToken is  Context, IERC20, IERC20Metadata, Ownable, Initializable {
 //   ======================================
 
     function _tokenTransfer (address, address, uint256, bool) internal virtual {}
-
-    function _updateLiquidityPair () internal virtual {}
 
 //   ======================================
 //   ======================================

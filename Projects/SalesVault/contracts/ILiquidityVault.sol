@@ -14,4 +14,8 @@ interface ILiquidityVault {
     function liquidityPair() external view returns (address);
 
     function baseToken() external view returns (address);
+    
+    function contractManager() external view returns (address);
+
+    function externalSafe() external view returns (address);
 }

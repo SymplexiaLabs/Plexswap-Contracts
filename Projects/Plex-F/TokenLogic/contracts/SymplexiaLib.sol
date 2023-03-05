@@ -64,7 +64,18 @@ library SymplexiaLib {
     struct TradingInfo  {uint256 buyingStack; uint256 sellingStack; uint256 lastTokenPrice;
                          uint256 lastTxnValue; uint8 lastTxnType; bool needAttenuation;
     }
-	        
+
+    struct FeesInfo   {
+           uint256 Liquidity;
+           uint256 Funds;
+           uint256 Bonus;
+           uint256 Burn;
+           uint256 WicksellReserves;
+           uint256 LoyaltyRewards;
+           uint256 Project;
+           uint256 Contingency;
+    }   
+
     struct InventoryStorage {
     	mapping (address => AccountInfo) Basis;
     	mapping (address => mapping (uint48 => AssetsInfo)) futureAssets;
@@ -83,13 +94,69 @@ library SymplexiaLib {
     event SetBonusStatus         (address authorizer, address account, bool status);
     event RewardsClaimed         (address account,    uint256 amountRewards);  
     event AssetsSentAndFrozen    (address _sender,    address _recipient, uint64 _freezeDuration, uint256 _amountToFreeze);
+    event FeesTransfered         (uint256 Liquidity, uint256 Contingency, uint256 Project, uint256 Bonus, uint256 LoyaltyRewards, uint256 WicksellReserves, uint256 Burn );
 
-//------------------------------------------------------------------
+ //-------------------------------------------------------------------------
 
     function balanceOf (InventoryStorage storage self, address account) public view returns (uint256) {
         return self.Basis[account].balance + getBonus(self, account);
     }
+ //-------------------------------------------------------------------------
 
+   /***************************************************************************************
+     *  NOTE:
+     *  The following functions help to configure the special attributes of some accounts,
+     *  in other cases those attributes are configured as default.
+   ****************************************************************************************/
+    function addInNoBonusList (InventoryStorage storage self, address account) internal {
+        bool alreadyIncluded;
+        for (uint256 i=0; i < self.noBonusList.length; i++) {
+            if (self.noBonusList[i] == account) {
+                alreadyIncluded = true;
+                break;
+            }
+            if (!alreadyIncluded) {self.noBonusList.push(account);}
+        }
+    }
+//-----------------------------------------------------------------------------
+    function setInternalStatus (InventoryStorage storage self, address account, bool isLocked) public {
+        self.Basis[account].accType        = Internal;
+        self.Basis[account].isTaxFree      = true;
+        self.Basis[account].isLocked       = isLocked;
+        self.Basis[account].isNonBonus     = true;
+        self.Basis[account].isUnrewardable = true;
+        addInNoBonusList(self, account);
+    }
+//-----------------------------------------------------------------------------
+
+    function excludeFromBonus (InventoryStorage storage self, address sender, address account) public {
+        require(!self.Basis[account].isNonBonus, "Already non-bonus" );
+        require(account != wicksellReserves,     "Cannot be excluded");
+        uint256 _bonus = getBonus(self, account); 
+        self.Basis[account].balance     += _bonus;
+        self.Basis[goldenBonus].balance -= _bonus;
+        self.Basis[account].isNonBonus   = true;
+        addInNoBonusList(self, account);
+        emit SetBonusStatus (sender, account, true);
+    }
+//-----------------------------------------------------------------------------
+
+    function includeInBonus (InventoryStorage storage self, address Sender, address account) public {
+        require(  self.Basis[account].isNonBonus, "Already receive bonus");
+        
+        (uint256 _adjustedBonus, uint256 _adjustedBalance) = shareAmount(self, self.Basis[account].balance);
+        for (uint256 i = 0; i < self.noBonusList.length; i++) {
+            if (self.noBonusList[i] == account) {
+                self.noBonusList[i] = self.noBonusList[self.noBonusList.length - 1];
+                self.Basis[account].isNonBonus   = false;
+                self.Basis[account].balance      = _adjustedBalance;
+                self.Basis[goldenBonus].balance += _adjustedBonus;
+                self.noBonusList.pop();
+                break;
+            }
+        }
+        emit SetBonusStatus (Sender, account, false);
+    }
    /***************************************************************************************
      *  NOTE:
      *  The "shareDividends" and "_partnersBalance" functions distribute 
@@ -133,6 +200,69 @@ library SymplexiaLib {
             self.Basis[dividendReserves].balance = 0;
         }
     }
+   /***************************************************************************************
+     *  NOTE:
+     *  The "calcDynamicFee" and "collectFees" functions  help to final calculate and  
+     *  collect all due fees. 
+   ****************************************************************************************/ 
+ function calcDynamicFee (InventoryStorage storage self, address account, 
+                          uint256 sellAmount, uint16 efficiencyFactor) public returns (uint256 dynamicFee) {
+         
+        uint256 reduceFee;
+        uint256 sellQuocient; 
+        uint256 reduceFactor;
+
+        dynamicFee = self.Basis[account].balance * maxDynamicFee * efficiencyFactor / self.tokensSupply;
+       
+        if (dynamicFee > maxDynamicFee) {dynamicFee = maxDynamicFee;}
+        if (dynamicFee < minDynamicFee) {dynamicFee = minDynamicFee;}
+        
+        if (self.Basis[account].lastTxn + _sellRange < block.timestamp) {
+            sellQuocient = (sellAmount * tenK) / self.Basis[account].balance;
+            reduceFactor = (sellQuocient > 1000) ? 0 : (1000 - sellQuocient);
+            reduceFee    = (reduceFactor * 30) / 100;
+            dynamicFee  -= reduceFee;
+        }
+
+        self.Basis[account].lastTxn = uint48(block.timestamp);
+    }
+
+   function collectFees (InventoryStorage storage self,
+                         uint256 _tAmount, uint256 _liquidityFee, 
+                         uint256 _deflatFee, uint256 _wicksellFee, 
+                         uint256 _loyaltyRewardsFee, uint256 _contingencyFee, 
+                         uint256 _bonusFee, uint256 _projectFee, 
+                         address liquidityVault, 
+                         address contingencyVault, 
+                         address projectVault) public returns (uint256 totalFees) {
+       
+        FeesInfo memory fees;
+
+        fees.Liquidity            = (_tAmount * _liquidityFee) / tenK;
+        fees.Burn                 = (_tAmount * _deflatFee) / tenK;
+        fees.WicksellReserves     = (_tAmount * _wicksellFee) / tenK;
+        fees.LoyaltyRewards       = (_tAmount * _loyaltyRewardsFee) / tenK;
+        fees.Contingency          = (_tAmount * _contingencyFee) / tenK;
+        fees.Bonus                = (_tAmount * _bonusFee) / tenK;
+        fees.Project              = (_tAmount * _projectFee) / tenK;
+
+        self.Basis[liquidityVault].balance          +=  fees.Liquidity; 
+        self.Basis[contingencyVault].balance  +=  fees.Contingency;
+        self.Basis[projectVault].balance      +=  fees.Project;
+        self.Basis[goldenBonus].balance            +=  fees.Bonus;
+        self.Basis[loyaltyRewards].balance         +=  fees.LoyaltyRewards;
+        if (self.isBurnable) {
+            self.Basis[wicksellReserves].balance   +=  fees.WicksellReserves; 
+            self.tokensSupply                      -=  fees.Burn;
+            if (self.tokensSupply - self.Basis[wicksellReserves].balance <= _minimumSupply ) {
+               self.isBurnable = false;
+            }
+        }  
+        emit FeesTransfered(fees.Liquidity, fees.Contingency, fees.Project, fees.Bonus, fees.LoyaltyRewards, fees.WicksellReserves, fees.Burn );
+    
+        totalFees = fees.Liquidity + fees.Burn + fees.WicksellReserves + fees.LoyaltyRewards + 
+                    fees.Contingency + fees.Bonus + fees.Project;
+    }
 
    /***************************************************************************************
      *  NOTE:
@@ -171,16 +301,6 @@ library SymplexiaLib {
         uint256 _bonusAmount  = (tAmount * _bonusStock) / (_eligibleBalance + _bonusStock);
         uint256 _rawAmount    = tAmount - _bonusAmount; 
         return (_bonusAmount, _rawAmount);
-    }
-//-------------------------------------------------------------------------
-
-    function setInternalStatus (InventoryStorage storage self, address account, bool isLocked) public {
-        self.Basis[account].accType        = Internal;
-        self.Basis[account].isTaxFree      = true;
-        self.Basis[account].isLocked       = isLocked;
-        self.Basis[account].isNonBonus     = true;
-        self.Basis[account].isUnrewardable = true;
-        self.noBonusList.push(account);
     }
 //------------------------------------------------------------------
 
@@ -355,37 +475,7 @@ library SymplexiaLib {
         _unfrozenAmount /= (10 ** _decimals);
         _futureBonus    /= (10 ** _decimals);
     } 
-//-----------------------------------------------------------------------------
 
-    function excludeFromBonus (InventoryStorage storage self, address sender, address account) public {
-        require(!self.Basis[account].isNonBonus, "Already non-bonus" );
-        require(account != wicksellReserves,     "Cannot be excluded");
-        uint256 _bonus = getBonus(self, account); 
-        self.Basis[account].balance     += _bonus;
-        self.Basis[goldenBonus].balance -= _bonus;
-        self.Basis[account].isNonBonus   = true;
-        self.noBonusList.push(account);
-        emit SetBonusStatus (sender, account, true);
-    }
-//-----------------------------------------------------------------------------
-
-    function includeInBonus (InventoryStorage storage self, address Sender, address account) public {
-        require(  self.Basis[account].isNonBonus, "Already receive bonus");
-        
-        (uint256 _adjustedBonus, uint256 _adjustedBalance) = shareAmount(self, self.Basis[account].balance);
-        for (uint256 i = 0; i < self.noBonusList.length; i++) {
-            if (self.noBonusList[i] == account) {
-                self.noBonusList[i] = self.noBonusList[self.noBonusList.length - 1];
-                self.Basis[account].isNonBonus   = false;
-                self.Basis[account].balance      = _adjustedBalance;
-                self.Basis[goldenBonus].balance += _adjustedBonus;
-                self.noBonusList.pop();
-                break;
-            }
-        }
-
-        emit SetBonusStatus (Sender, account, false);
-    }
 //-----------------------------------------------------------------------------
     function claimLoyaltyRewards (InventoryStorage storage self, address Sender) public { 
         require (!self.Basis[Sender].isNonBonus && !self.Basis[Sender].isLocked &&
