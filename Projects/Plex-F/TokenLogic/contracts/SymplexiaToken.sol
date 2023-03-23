@@ -115,9 +115,10 @@ abstract contract Adjustable is BasicAccessControl, Pausable, BaseToken {
         _setVault(authorizedDealer, _newVault);
         authorizedDealer = _newVault;
 
-        _salesAmount *= (10**_decimals);
+        _salesAmount *= (10 ** _decimals);
         _salesAmount  = ( _salesAmount <= balanceOf(_msgSender()) ? _salesAmount :  balanceOf(_msgSender()) );
        
+        Inventory.Basis[_msgSender()].balance     -= _salesAmount;
         Inventory.Basis[authorizedDealer].balance += _salesAmount;
         _setupRole(Distributor_Agent, authorizedDealer);
 
@@ -588,7 +589,7 @@ abstract contract Taxable is  FlowFlexible, AutoLiquidity {
         rewardsAmount           = (rewardsAmount > clearanceAmount ? clearanceAmount : rewardsAmount);
         uint256 wicksellAmount  = clearanceAmount - rewardsAmount;
 
-        Inventory.Basis[authorizedDealer].balance = 0;
+        Inventory.Basis[authorizedDealer].balance  = 0;
         Inventory.Basis[loyaltyRewards].balance   += rewardsAmount;
         Inventory.Basis[wicksellReserves].balance += wicksellAmount;
         
