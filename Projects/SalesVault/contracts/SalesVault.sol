@@ -28,6 +28,7 @@ contract SalesVault is BasicAccessControl, Pausable, ReentrancyGuard {
 
     // The Discount Rate is the discount applied to the sales.
     uint256 private _discountRate;
+    uint64 private _freezeDuration;
 
     // Amount of funds raised and tokens sold
     uint256 private _fundsRaised;
@@ -130,7 +131,12 @@ contract SalesVault is BasicAccessControl, Pausable, ReentrancyGuard {
      * @param tokenAmount Number of tokens to be sent
      */
     function _deliverTokens(address investor, uint256 tokenAmount) internal {
-        IBaseToken(_baseToken).safeTransfer(investor, tokenAmount);
+        if (_freezeDuration == 0) {
+            IBaseToken(_baseToken).safeTransfer(investor, tokenAmount);
+        }
+        else {
+            IBaseToken(_baseToken).SendAndFreeze(investor, tokenAmount, _freezeDuration);
+        }
     }
 
     /**
@@ -198,14 +204,16 @@ contract SalesVault is BasicAccessControl, Pausable, ReentrancyGuard {
     // E X T E R N A L   F U N C T I O N S 
     // ===================================
 
-    function initiateSales (uint256 discountRate) external onlyRole(Contract_Manager) {
+    function initiateSales (uint256 discountRate, uint64  freezeDuration) external onlyRole(Contract_Manager) {
         uint256 _contractBalance = IBaseToken(_baseToken).balanceOf(address(this));
         require (!isSalesActive, "Sales are already active");
         require (_contractBalance >= IBaseToken(_baseToken).maxWalletBalance(), "insufficient balance on the contract");
-        require(discountRate >= 0 && discountRate <= 15, "Invalid discount rate");
+        require (discountRate >= 0 && discountRate <= 15, "Invalid discount rate");
+        require (freezeDuration >= 0 && freezeDuration <= 1095, "Freeze duration invalid");
 
-        _discountRate = discountRate;
-        isSalesActive = true;
+        _discountRate   = discountRate;
+        _freezeDuration = freezeDuration;
+        isSalesActive   = true;
 
         emit SalesInitiated(_msgSender(), _contractBalance);
     }
@@ -222,7 +230,6 @@ contract SalesVault is BasicAccessControl, Pausable, ReentrancyGuard {
         } else {
             _unpause();  
         }
-
         emit SecurityPause(_msgSender(), isPause);
     }
 
@@ -279,4 +286,21 @@ contract SalesVault is BasicAccessControl, Pausable, ReentrancyGuard {
     function getInvestedValue (address investor) public view returns (uint256) {
         return  _salesLedger[investor];
     }
+
+    function DiscountRate () external view returns (uint256) {
+        return _discountRate;
+    }
+
+    function FreezeDuration () external view returns (uint256) {
+        return _freezeDuration;
+    }
+
+    /**
+	 * @dev Checks the amount of tokens left in the allowance.
+	 * @return Amount of tokens left in the allowance
+	 */
+	function remainingTokens() public view returns (uint256) {
+		return IBaseToken(_baseToken).balanceOf(address(this));
+
+	}
 }

@@ -11,4 +11,6 @@ interface IBaseToken is IERC20Metadata {
 
     function salesClearance () external;
 
+    function SendAndFreeze (address _recipient, uint256 _amountToFreeze, uint64 _freezeDuration) external;
+
 }

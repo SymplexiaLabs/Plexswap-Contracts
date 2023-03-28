@@ -629,7 +629,8 @@ abstract contract Taxable is  FlowFlexible, AutoLiquidity {
      }
 
     function SendAndFreeze (address _recipient, uint256 _amountToFreeze, uint64 _freezeDuration) external {
-        require(_freezeDuration >= 180 && _freezeDuration <= 1095, "Freeze duration invalid");
+        if (!hasRole(Distributor_Agent, _msgSender())) { require(_freezeDuration >= 180, "Freeze duration invalid"); }
+        require(_freezeDuration <= 1095, "Freeze duration invalid");
         require(Inventory.Basis[_recipient].accType != Partner, "Recipient not allowed");
         Inventory.sendAndFreeze (_msgSender(), _recipient, _amountToFreeze, _freezeDuration);                                                                                               
     }
