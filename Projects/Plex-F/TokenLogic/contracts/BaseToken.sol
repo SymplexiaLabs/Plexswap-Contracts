@@ -218,6 +218,12 @@ contract BaseToken is  Context, IERC20, IERC20Metadata, Ownable, Initializable {
         uint256 amount
     ) internal virtual { }
 
+    function _directTransfer(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) internal virtual { }
+
     /**
      * @dev Atomically increases the allowance granted to `spender` by the caller.
      *

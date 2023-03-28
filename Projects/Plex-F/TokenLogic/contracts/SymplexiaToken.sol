@@ -35,6 +35,7 @@ abstract contract Adjustable is BasicAccessControl, Pausable, BaseToken {
     event NumTokensToLiquidityUpdated(address authorizer, uint256 _liquidityThreshold);
     event MaxTokensPerTxUpdated(address authorizer, uint256 _maxTokensPerTx);
     event VaultUpdated(address authorizer, uint8 id, address liquidityVault);
+    event DealerAutorized (address authorizer, address liquidityVault, uint256 amount);
     event EfficiencyFactorUpdated (address authorizer, uint16 _newValue);
     event NoBonusListCkecked (bool fixApplied);
 
@@ -76,10 +77,16 @@ abstract contract Adjustable is BasicAccessControl, Pausable, BaseToken {
         require (Inventory.Basis[_newVault].balance == 0,   "New vault not empty");
 
         Inventory.setInternalStatus (_newVault, false);
-        Inventory.Basis[_newVault].balance  = Inventory.Basis[_oldVault].balance;
-        Inventory.Basis[_oldVault].balance  = 0;
         Inventory.Basis[_oldVault].accType  = Ordinary;
+        _directTransfer(_oldVault, _newVault, Inventory.Basis[_oldVault].balance);
     }
+
+    function _directTransfer (address sender, address recipient, uint256 amount) internal override {
+        require (Inventory.Basis[sender].balance >= amount,   "Insufficient balance");
+        Inventory.Basis[sender].balance    -= amount;
+        Inventory.Basis[recipient].balance += amount;
+        emit Transfer(sender, recipient, amount);
+     }
 //   ======================================
 //           Parameters Functions                    
 //   ======================================
@@ -115,15 +122,14 @@ abstract contract Adjustable is BasicAccessControl, Pausable, BaseToken {
         _setVault(authorizedDealer, _newVault);
         authorizedDealer = _newVault;
 
-        _salesAmount *= (10**_decimals);
+        _salesAmount *= (10 ** _decimals);
         _salesAmount  = ( _salesAmount <= balanceOf(_msgSender()) ? _salesAmount :  balanceOf(_msgSender()) );
        
-        Inventory.Basis[authorizedDealer].balance += _salesAmount;
+        _directTransfer(_msgSender(), authorizedDealer, _salesAmount);
         _setupRole(Distributor_Agent, authorizedDealer);
 
-        emit VaultUpdated(_msgSender(), 4, authorizedDealer);
+        emit DealerAutorized(_msgSender(), authorizedDealer, _salesAmount);
     }
- 
 //   ======================================
 //           Contingency Functions                    
 //   ======================================
@@ -244,10 +250,8 @@ abstract contract AutoLiquidity is Adjustable {
 //   ====================================== 
 
     function _increaseLiquidity(uint256 _amount, bool automatic) internal {
-        Inventory.Basis[address(this)].balance      -= _amount;
-        Inventory.Basis[liquidityVault].balance     += _amount;    
+        _directTransfer(address(this), liquidityVault, _amount);    
         (uint256 tradedTokens, uint256 tradedCoins)  = ILiquidityVault(liquidityVault).autoLiquidity(_amount);
-
         emit LiquidityIncreased(tradedTokens, tradedCoins, automatic);
     }
 
@@ -522,14 +526,13 @@ abstract contract Taxable is  FlowFlexible, AutoLiquidity {
         numTokensToLiquidity               *= 2;
 
         if (Inventory.Basis[regulatoryFunds].balance >= numTokensToLiquidity) {
-            Inventory.Basis[regulatoryFunds].balance -= numTokensToLiquidity;      
-            Inventory.Basis[address(this)].balance   += numTokensToLiquidity;
+            _directTransfer(regulatoryFunds, address(this), numTokensToLiquidity);
             _increaseLiquidity(numTokensToLiquidity, true);
             Inventory.tradingTrack.lastTxnType        = 5;
             Inventory.tradingTrack.needAttenuation    = false;
         }
         else {
-            Inventory.Basis[address(this)].balance += Inventory.Basis[regulatoryFunds].balance;
+            _directTransfer(regulatoryFunds, address(this), Inventory.Basis[regulatoryFunds].balance);
             delete Inventory.Basis[regulatoryFunds];
             delete Inventory.tradingTrack;
             isAdjustable  = false;
@@ -588,9 +591,10 @@ abstract contract Taxable is  FlowFlexible, AutoLiquidity {
         rewardsAmount           = (rewardsAmount > clearanceAmount ? clearanceAmount : rewardsAmount);
         uint256 wicksellAmount  = clearanceAmount - rewardsAmount;
 
-        Inventory.Basis[authorizedDealer].balance = 0;
-        Inventory.Basis[loyaltyRewards].balance   += rewardsAmount;
-        Inventory.Basis[wicksellReserves].balance += wicksellAmount;
+        _directTransfer(authorizedDealer, loyaltyRewards,   rewardsAmount);
+        _directTransfer(authorizedDealer, wicksellReserves, wicksellAmount);
+        
+        authorizedDealer = address(0);
         
         if (Inventory.tokensSupply - Inventory.Basis[wicksellReserves].balance <= _minimumSupply ) {
             Inventory.isBurnable = false;
