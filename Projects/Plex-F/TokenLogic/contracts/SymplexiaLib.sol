@@ -115,8 +115,8 @@ library SymplexiaLib {
                 alreadyIncluded = true;
                 break;
             }
-            if (!alreadyIncluded) {self.noBonusList.push(account);}
         }
+        if (!alreadyIncluded) {self.noBonusList.push(account);}
     }
 //-----------------------------------------------------------------------------
     function setInternalStatus (InventoryStorage storage self, address account, bool isLocked) public {
