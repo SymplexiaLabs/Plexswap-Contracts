@@ -172,7 +172,7 @@ contract SalesVault is BasicAccessControl, Pausable, ReentrancyGuard {
      * @return Number of tokens that can be purchased with the specified _coinAmount
      */
     function _getTokenAmount(uint256 coinAmount) internal view returns (uint256) {
-        return (coinAmount * salePrice()) / (10 ** 18);
+        return ( (coinAmount * (10 ** 9) ) / salePrice() );
     }
 
     /**
