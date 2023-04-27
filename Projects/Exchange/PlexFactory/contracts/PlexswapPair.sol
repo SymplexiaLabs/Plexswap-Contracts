@@ -8,6 +8,7 @@ import './IPlexswapPair.sol';
 import './Math.sol';
 import './PlexswapERC20.sol';
 import './UQ112x112.sol';
+import './SafeMath.sol';
 
 
 contract PlexswapPair is IPlexswapPair, PlexswapERC20 {
